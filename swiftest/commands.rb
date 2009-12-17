@@ -7,11 +7,12 @@ end
 
 module SwiftestCommands
   def alert(msg)
-	eval("alert(" + msg.javascript_escape + ");")
+	self.eval "alert(#{msg.javascript_escape});"
   end
 
   def eval(js)
-	puts "Eval: #{js}"
+	r = send_command "eval", js
+	puts "Eval: #{js} - result: #{r.inspect}"
   end
 end
 

@@ -1,7 +1,10 @@
 require 'rubygems'
 require 'hpricot'
+require 'socket'
 
 require 'swiftest/commands'
+
+SWIFTEST_BASE = File.dirname(__FILE__)
 
 class Swiftest
   class AlreadyStartedError < StandardError; end
@@ -22,19 +25,25 @@ class Swiftest
   def start
 	raise AlreadyStartedError if @started
 	STDERR.puts "starting Swiftest"
+
+	@server = TCPServer.open(0)
+	@port = @server.addr[1]
 	
 	@new_content_file = "#@content_file.swiftest.html"
 	# We make a copy of the initial page and drop some JavaScript in at the end.
-	FileUtils.cp "#@relative_dir/#@content_file", "#@relative_dir/#@new_content_file"
+	FileUtils.cp File.join(@relative_dir, @content_file), File.join(@relative_dir, @new_content_file)
 
-	File.open("#@relative_dir/#@new_content_file", "a") do |html|
+	File.open(File.join(@relative_dir, @new_content_file), "a") do |html|
 	  html.puts <<-EOS
-		<script>
-		  alert("Slightly modified!");
+		<script type="text/javascript">
+		  var SWIFTEST_PORT = #@port;
 		</script>
+		<script type="text/javascript" src="inject.swiftest.js"></script>
 	  EOS
 	end
 
+	# Actually drop inject.js in under the right name.
+	FileUtils.cp File.join(SWIFTEST_BASE, "inject.js"), File.join(@relative_dir, "inject.swiftest.js")
 
 	# Make a new copy of the descriptor to point to a new initial page.
 	@new_descriptor_file = "#@descriptor_path.swiftest.xml"
@@ -44,10 +53,47 @@ class Swiftest
 	  xmlout.puts descriptor
 	end
 
-	@pipe, @started = IO.popen("adl #@new_descriptor_file 2>&1", "w+"), true
-	p @pipe.read
-	Process.waitpid(@pipe.pid)
-	cleanup
+	# Open up the modified descriptor with ADL.
+	@pipe, @started = IO.popen("adl #@new_descriptor_file 2>&1", "r+"), true
+
+	# Start a thread to pipe through output from adl
+	@reader_thread = Thread.start do 
+	  while true
+		data = @pipe.read(1024)
+		break unless data
+		puts data
+	  end
+	  Process.waitpid(@pipe.pid)
+	  STDERR.puts "need to kill this ship!"
+	  cleanup
+	end
+
+	# Block for the client
+	puts "waiting for connection from application"
+	@client = @server.accept
+	puts "accepted #{@client.inspect}"
+  end
+
+  def stop
+	@reader_thread.join
+  end
+
+  def send_command command, *args
+	STDERR.puts "#{command}(#{args.map{|a|a.inspect}.join(",")})"
+
+	send_str command
+	send_int args.length
+	args.each {|arg| send_str arg.to_s}
+	@client.flush
+  end
+
+  def send_int int
+	@client.write int.to_s + ","
+  end
+
+  def send_str str
+	send_int str.length
+	@client.write str
   end
 
   def cleanup
@@ -55,7 +101,8 @@ class Swiftest
 	return
 
 	File.unlink @new_descriptor_file rescue true
-	File.unlink "#@relative_dir/#@new_content_file" rescue true
+	File.unlink File.join(@relative_dir, @new_content_file) rescue true
+	File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
   end
 end
 
