@@ -12,9 +12,15 @@ $(function() {
 	if (o === true) return "true";
 	if (o === false) return "false";
 	if (o === null || o === undefined) return "nil";
-	if (typeof(o) == "string") return '"' + o.replace(/"/g, "\\\"").replace(/\\/g, "\\\\") + '"';
-	if (typeof o == "number") return "" + o;
-	if (o && typeof(o) == "object") {
+
+	switch (typeof(o)) {
+	case "string":
+	  return '"' + o.replace(/"/g, "\\\"").replace(/\\/g, "\\\\") + '"';
+
+	case "number":
+	  return "" + o;
+
+	case "object":
 	  if (typeof o.length == 'number' && !(o.propertyIsEnumerable('length')) && typeof o.splice == 'function') {
 		// Looks suspiciously like an array. Treat it as one.
 		var ret = "[", first = true;
@@ -26,6 +32,15 @@ $(function() {
 		return ret;
 	  } else {
 		// Ordinary object!
+		// HACK(arlen): instead of actually serialising the entire object,
+		// we just return this proxy-ish object instead. Any attempt to access 
+		// properties will hit method_missing, which should then
+		// actually come back to the JavaScript to find the value.
+
+		// ?: we could list the keys later if we wanted to know that client-side
+		return "SwiftestCommands::StateObject.new(:object)";
+
+		/*
 		var ret = "{", first = true;
 		for (var key in o) {
 		  if (first) first = false; else ret += ", ";
@@ -33,9 +48,20 @@ $(function() {
 		}
 		ret += "}";
 		return ret;
+		*/
 	  }
+	  break;	// shall not be reached
+	
+	case "function":
+	  return "SwiftestCommands::StateObject.new(:function)";
+
+	case "undefined":
+	  return "SwiftestCommands::StateObject.new(:type_undefined)";
+
+	default:
+	  trace("unknown type " + (typeof o) + " of " + o);
+	  throw new Error("Who knows what type " + o + " is? (" + (typeof o) + ") We can't serialise it.");
 	}
-	throw new Error("Who knows what type " + o + " is? We can't serialise it.");
   }
 
   function process() {
@@ -50,6 +76,8 @@ $(function() {
 		if (e == insufficientDataError) {
 		  insufficientData = true;
 		  expectBuffer = buffer;
+		} else {
+		  trace("error occurred while processing state " + state + ": " + e);
 		}
 	  }
 	}
@@ -110,15 +138,12 @@ $(function() {
 
 	  return current;
 	},
-	'state-fncall': function(state, path) {
+	'state-fncall': function(state, fn, args) {
 	  if (state === false) {
-		var initial = path.shift();
-		var current = top[initial[0]].apply(this, initial[1]);
+		var current = top[fn].apply(this, args);
 	  } else {
-
-	  }
-	  for (var i in path) {
-		current = path_call(current, path[i]);
+		var current = state_fncall_db[state];
+		current = path_call(current, [fn, args]);
 	  }
 
 	  state_fncall_db.push(current);
