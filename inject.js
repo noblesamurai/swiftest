@@ -77,6 +77,21 @@ $(function() {
 	},
   };
 
+  function path_call(target, path_el) {
+	var fn = path_el[0], args = path_el[1];
+
+	// If we were given no arguments and the target 'function'
+	// appears not to be a function at all, just use it like an
+	// object.
+	if (typeof target[fn] != "function" && args.length == 0) {
+	  return target[fn];
+	} else {
+	  // Otherwise, we'll call the function with given arguments.
+	  return target[fn].apply(target, args);
+	}
+  }
+
+  var state_fncall_db = [];
   var commands = {
 	/*'eval': function(cmd) {
 	  return eval(cmd);
@@ -84,26 +99,30 @@ $(function() {
 	'safeeval': function(cmd) {
 	  return window.safeeval(cmd);
 	},
-	'fakeeval': function(path) {
+	'fncall': function(path) {
 	  // Make the initial function call.
 	  var initial = path.shift();
 	  var current =	top[initial[0]].apply(this, initial[1]);
 
 	  for (var i in path) {
-		var fn = path[i][0], args = path[i][1];
-
-		// If we were given no arguments and the target 'function'
-		// appears not to be a function at all, just use it like an
-		// object.
-		if (typeof current[fn] != "function" && args.length == 0) {
-		  current = current[fn];
-		} else {
-		  // Otherwise, we'll call the function with given arguments.
-		  current = current[fn].apply(current, args);
-		}
+		current = path_call(current, path[i]);
 	  }
 
 	  return current;
+	},
+	'state-fncall': function(state, path) {
+	  if (state === false) {
+		var initial = path.shift();
+		var current = top[initial[0]].apply(this, initial[1]);
+	  } else {
+
+	  }
+	  for (var i in path) {
+		current = path_call(current, path[i]);
+	  }
+
+	  state_fncall_db.push(current);
+	  return [current, state_fncall_db.length - 1];
 	},
   };
 
