@@ -91,7 +91,16 @@ $(function() {
 
 	  for (var i in path) {
 		var fn = path[i][0], args = path[i][1];
-		current = current[fn].apply(current, args);
+
+		// If we were given no arguments and the target 'function'
+		// appears not to be a function at all, just use it like an
+		// object.
+		if (typeof current[fn] != "function" && args.length == 0) {
+		  current = current[fn];
+		} else {
+		  // Otherwise, we'll call the function with given arguments.
+		  current = current[fn].apply(current, args);
+		}
 	  }
 
 	  return current;
