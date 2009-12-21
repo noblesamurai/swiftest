@@ -3,6 +3,8 @@ require 'hpricot'
 require 'socket'
 
 require 'swiftest/commands'
+require 'swiftest/tools'
+require 'swiftest/jsescape'
 
 SWIFTEST_BASE = File.dirname(__FILE__)
 
@@ -54,7 +56,7 @@ class Swiftest
 	end
 
 	# Open up the modified descriptor with ADL.
-	@pipe, @started = IO.popen("adl #@new_descriptor_file 2>&1", "r+"), true
+	@pipe, @started = IO.popen("adl #@new_descriptor_file 1>&2", "r+"), true
 
 	# Start a thread to pipe through output from adl
 	@reader_thread = Thread.start do 
@@ -79,12 +81,12 @@ class Swiftest
   end
 
   def send_command command, *args
-	STDERR.puts "#{command}(#{args.map{|a|a.inspect}.join(",")})"
-
 	send_str command
 	send_int args.length
-	args.each {|arg| send_str arg.to_s}
+	args.each {|arg| send_str arg.javascript_escape}
 	@client.flush
+
+	eval(recv_str)
   end
 
   def send_int int
@@ -94,6 +96,20 @@ class Swiftest
   def send_str str
 	send_int str.length
 	@client.write str
+  end
+
+  def recv_int
+	buf = ""
+	buf += @client.read(1) while buf[-1] != ?,
+	buf[0..-2].to_i
+  end
+
+  def recv_str
+	len = recv_int
+	buf = ""
+	buf += @client.read(len - buf.length) while buf.length < len
+
+	buf
   end
 
   def cleanup

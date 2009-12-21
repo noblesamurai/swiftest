@@ -8,10 +8,39 @@ $(function() {
   var buffer = "", expectBuffer = "";
   var state = 'idle';
 
+  function ruby_escape(o) {
+	if (o === true) return "true";
+	if (o === false) return "false";
+	if (o === null || o === undefined) return "nil";
+	if (typeof(o) == "string") return '"' + o.replace(/"/g, "\\\"").replace(/\\/g, "\\\\") + '"';
+	if (typeof o == "number") return "" + o;
+	if (o && typeof(o) == "object") {
+	  if (typeof o.length == 'number' && !(o.propertyIsEnumerable('length')) && typeof o.splice == 'function') {
+		// Looks suspiciously like an array. Treat it as one.
+		var ret = "[", first = true;
+		for (var key in o) {
+		  if (first) first = false; else ret += ", ";
+		  ret += ruby_escape(o[key])
+		}
+		ret += "]";
+		return ret;
+	  } else {
+		// Ordinary object!
+		var ret = "{", first = true;
+		for (var key in o) {
+		  if (first) first = false; else ret += ", ";
+		  ret += ruby_escape(key) + " => " + ruby_escape(o[key]);
+		}
+		ret += "}";
+		return ret;
+	  }
+	}
+	throw new Error("Who knows what type " + o + " is? We can't serialise it.");
+  }
+
   function process() {
 	var insufficientData = false;
 
-	trace("buffer is '" + buffer + "'");
 	expectBuffer = buffer;
 	while (!insufficientData) {
 	  buffer = expectBuffer;
@@ -28,17 +57,44 @@ $(function() {
 
   var processors = {
 	'idle': function() {
-	  trace("idle running");
 	  var command = expect_str();
 	  var argc = expect_int(),
 		  args = [];
 
 	  while (argc > 0) {
-		args.push(expect_str());
+		args.push($.parseJSON(expect_str()));
 		argc--;
 	  }
 
-	  trace("got cmd " + command + " with " + args.length + " args");
+	  try {
+		var result = commands[command].apply(this, args);
+	  } catch (e) {
+		trace("got an error instead; " + e);
+	  }
+
+	  send_str(ruby_escape(result));
+	  flush();
+	},
+  };
+
+  var commands = {
+	/*'eval': function(cmd) {
+	  return eval(cmd);
+	},*/
+	'safeeval': function(cmd) {
+	  return window.safeeval(cmd);
+	},
+	'fakeeval': function(path) {
+	  // Make the initial function call.
+	  var initial = path.shift();
+	  var current =	top[initial[0]].apply(this, initial[1]);
+
+	  for (var i in path) {
+		var fn = path[i][0], args = path[i][1];
+		current = current[fn].apply(current, args);
+	  }
+
+	  return current;
 	},
   };
 
@@ -57,11 +113,23 @@ $(function() {
 	return s;
   }
 
+  function send_int(i) {
+	socket.writeUTFBytes("" + i + ",");
+  }
+
+  function send_str(str) {
+	send_int(str.length);
+	socket.writeUTFBytes(str);
+  }
+
+  function flush() {
+	socket.flush();
+  }
+
   socket.addEventListener(flash.events.ProgressEvent.SOCKET_DATA, function(e) {
-	trace("going to process with " + e.bytesLoaded + " bytes");
+	buffer += socket.readUTFBytes(socket.bytesAvailable);
 	process();
   });
 
   socket.connect("127.0.0.1", SWIFTEST_PORT);
-  trace(socket);
 });
