@@ -83,6 +83,6 @@ module SwiftestCommands
   end
 
   # So you can do swiftest.top.window.... etc.
-  alias :top :fncall
+  alias top fncall
 end
 
