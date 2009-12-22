@@ -24,16 +24,21 @@ module SwiftestCommands
 	def method_missing sym, *args
 	  result, state = @swiftest.send_command("state-fncall", @statefncall, sym, args)
 
-	  class << result
-		include StateFnCall
+	  # Basic types don't need proxying, since they're not going to
+	  # hide anything useful in JavaScript that needs re-referencing.
+	  unless [Numeric, String, TrueClass, FalseClass, NilClass].any? {|c| c === result}
+		class << result
+		  include StateFnCall
+		end
+		result.swiftest = @swiftest
+		result.statefncall = state
 	  end
-	  result.swiftest = @swiftest
-	  result.statefncall = state
 
 	  result
 	end
 
-	attr_accessor :statefncall, :swiftest
+	attr_accessor :statefncall
+	attr_accessor :swiftest
   end
 
   class StateFnCaller
@@ -56,6 +61,11 @@ module SwiftestCommands
 
 	def [](prop)
 	  self.send prop
+	end
+
+	def javascript_escape
+	  puts "jse returning #{@statefncall.inspect}"
+	  @statefncall
 	end
 
 	attr_reader :type

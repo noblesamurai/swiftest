@@ -10,6 +10,7 @@ SWIFTEST_BASE = File.dirname(__FILE__)
 
 class Swiftest
   class AlreadyStartedError < StandardError; end
+  class JavascriptError < StandardError; end
   include SwiftestCommands
 
   def initialize(path)
@@ -83,8 +84,32 @@ class Swiftest
   def send_command command, *args
 	send_str command
 	send_int args.length
-	args.each {|arg| send_str arg.javascript_escape}
+	p args
+	# We're sending the arguments as an array, hence failure to transmit
+	# back-refs properly
+	# RESUME
+	args.each do |arg|
+	  esc = arg.javascript_escape
+	  
+	  p esc
+	  case esc
+	  when String
+		# Ordinary string serialised JS. Will fit in nicely.
+		send_str "s"
+		send_str esc
+	  when Numeric
+		# Back reference!
+		send_str "b"
+		send_int esc
+	  else
+		raise "Unknown type of JS-escaped object #{esc}: #{esc.class}"
+	  end
+	end
 	@client.flush
+
+	success = recv_bool
+
+	raise JavascriptError, recv_str unless success
 
 	eval(recv_str)
   end
@@ -96,6 +121,10 @@ class Swiftest
   def send_str str
 	send_int str.length
 	@client.write str
+  end
+
+  def recv_bool
+	@client.read(1) == "t"
   end
 
   def recv_int

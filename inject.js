@@ -64,6 +64,7 @@ $(function() {
 	}
   }
 
+  var state_fncall_db = [];
   function process() {
 	var insufficientData = false;
 
@@ -83,6 +84,10 @@ $(function() {
 	}
   }
 
+  function get_back_ref(ref) {
+	return state_fncall_db[parseInt(ref)];
+  }
+
   var processors = {
 	'idle': function() {
 	  var command = expect_str();
@@ -90,16 +95,33 @@ $(function() {
 		  args = [];
 
 	  while (argc > 0) {
-		args.push($.parseJSON(expect_str()));
+		var arg_type = expect_str();
+		switch (arg_type) {
+		case "s":
+		  // Plain JSON arg.
+		  var result = $.parseJSON(expect_str());
+		  break;
+		case "b":
+		  // Back reference.
+		  var result = get_back_ref(expect_int());
+		  break;
+		default:
+		  throw new Error("No idea what type of argument '" + arg_type + "' is!");
+		}
+
+		args.push(result);
 		argc--;
 	  }
 
+	  var success = false;
 	  try {
 		var result = commands[command].apply(this, args);
+		success = true;
 	  } catch (e) {
-		trace("got an error instead; " + e);
+		result = "" + e;
 	  }
 
+	  send_bool(success);
 	  send_str(ruby_escape(result));
 	  flush();
 	},
@@ -119,7 +141,6 @@ $(function() {
 	}
   }
 
-  var state_fncall_db = [];
   var commands = {
 	/*'eval': function(cmd) {
 	  return eval(cmd);
@@ -139,7 +160,7 @@ $(function() {
 	  return current;
 	},
 	'state-fncall': function(state, fn, args) {
-	  var current = (state === false) ? top : state_fncall_db[state];
+	  var current = (state === false) ? top : get_back_ref(state);
 	  current = path_call(current, [fn, args]);
 
 	  state_fncall_db.push(current);
@@ -164,6 +185,10 @@ $(function() {
 
   function send_int(i) {
 	socket.writeUTFBytes("" + i + ",");
+  }
+
+  function send_bool(i) {
+	socket.writeUTFBytes(i ? "t" : "f");
   }
 
   function send_str(str) {
