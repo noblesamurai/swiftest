@@ -22,7 +22,7 @@ module SwiftestCommands
 
   module StateFnCall
 	def method_missing sym, *args
-	  result, state = @swiftest.send_command("state-fncall", @statefncall, sym, args)
+	  result, state = @swiftest.send_command("state-fncall", @statefncall, sym, *args)
 
 	  # Basic types don't need proxying, since they're not going to
 	  # hide anything useful in JavaScript that needs re-referencing.
@@ -64,7 +64,6 @@ module SwiftestCommands
 	end
 
 	def javascript_escape
-	  puts "jse returning #{@statefncall.inspect}"
 	  @statefncall
 	end
 

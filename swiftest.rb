@@ -84,14 +84,10 @@ class Swiftest
   def send_command command, *args
 	send_str command
 	send_int args.length
-	p args
-	# We're sending the arguments as an array, hence failure to transmit
-	# back-refs properly
-	# RESUME
+
 	args.each do |arg|
 	  esc = arg.javascript_escape
 	  
-	  p esc
 	  case esc
 	  when String
 		# Ordinary string serialised JS. Will fit in nicely.

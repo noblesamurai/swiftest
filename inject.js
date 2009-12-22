@@ -159,7 +159,11 @@ $(function() {
 
 	  return current;
 	},
-	'state-fncall': function(state, fn, args) {
+	'state-fncall': function(state, fn) {
+	  // We get a variable number of arguments after state and fn -
+	  // pull out of `arguments` and drop the first two.
+	  var args = Array.prototype.slice.call(arguments, 2);
+
 	  var current = (state === false) ? top : get_back_ref(state);
 	  current = path_call(current, [fn, args]);
 
