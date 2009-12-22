@@ -139,12 +139,8 @@ $(function() {
 	  return current;
 	},
 	'state-fncall': function(state, fn, args) {
-	  if (state === false) {
-		var current = top[fn].apply(this, args);
-	  } else {
-		var current = state_fncall_db[state];
-		current = path_call(current, [fn, args]);
-	  }
+	  var current = (state === false) ? top : state_fncall_db[state];
+	  current = path_call(current, [fn, args]);
 
 	  state_fncall_db.push(current);
 	  return [current, state_fncall_db.length - 1];

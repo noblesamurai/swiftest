@@ -72,8 +72,7 @@ module SwiftestCommands
 	end
   end
 
-  def jQuery(*args)
-	fncall.jQuery(*args)
-  end
+  # So you can do swiftest.top.window.... etc.
+  alias :top :fncall
 end
 
