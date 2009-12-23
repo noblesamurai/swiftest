@@ -142,9 +142,6 @@ $(function() {
   }
 
   var commands = {
-	/*'eval': function(cmd) {
-	  return eval(cmd);
-	},*/
 	'safeeval': function(cmd) {
 	  return window.safeeval(cmd);
 	},

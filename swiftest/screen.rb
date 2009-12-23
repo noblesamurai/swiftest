@@ -1,32 +1,60 @@
+# A screen which gains various methods once described.
+# (created by describe_screen)  The process of *how* it gains
+# its methods is described in further detail below.
 class SwiftestScreen
+
+  # Instances of ScreenDescriptor are the context for evaluation
+  # of the block given to describe_screen.  (i.e. this provides
+  # the DSL for describing screens)
   class ScreenDescriptor
 	def initialize(screen)
 	  @screen = screen
 	  @metaklass = (class << @screen; self; end)
 	end
 
+	# "This screen is current when <some code>."  Maps given
+	# block purely to be the function :current? on the screen.
 	def current_when &code
 	  @metaklass.send :define_method, :current?, &code
 	end
 
-	# Creates a method in this class by the name sym
-	# which adds a given method name to the screen, using
-	# a certain class for its values.
-	def self.link_item_class(sym, klass)
-	  define_method(sym) do |nsym, jq|
-		@metaklass.send :define_method, nsym do 
-		  instance_variable_get("@#{nsym}")
+	#   I had disagreements with naming all the parameters and block
+	# params 'sym' and 'nsym' (and so on) here, so I've tried to make
+	# them more explanatory.
+	#   link_item_class creates a new method constructor method 
+	# (right?).  It goes by the given name, and when called, adds a
+	# property on the resulting screen (by some given name "field_name")
+	# which points to a new single instance of the class "klass".
+	#
+	# Example:
+	#     link_item_class :text_field, TextField
+	#
+	# We can now use the method "text_field" when describing a screen:
+	#     text_field :username, "input#username"
+	#
+	# Now a property (method) is defined on that screen called 'username',
+	# which is a new TextField with the given selector.
+	def self.link_item_class(constructor_name, klass)
+	  define_method(constructor_name) do |field_name, selector|
+		@metaklass.send :define_method, field_name do 
+		  instance_variable_get("@#{field_name}")
 		end
-		@screen.instance_variable_set "@#{nsym}", klass.new(@screen, jq)
+		@screen.instance_variable_set "@#{field_name}", klass.new(@screen, selector)
 	  end
 	end
 
+	#   Base class for any field accessible by jQuery.  Stores
+	# the screen and the selector.  Field types being used with
+	# link_item_class should inherit this class and use the same
+	# initialize signature.
+	#   It provides a locate method for subclasses which just
+	# defers to the screen.
 	class JQueryAccessibleField
-	  def initialize(screen, jq); @screen, @jq = screen, jq; end
+	  def initialize(screen, selector); @screen, @selector = screen, selector; end
 	  def found?; locate.length > 0; end
 
 	  protected
-	  def locate; @screen.locate(@jq); end
+	  def locate; @screen.locate(@selector); end
 	end
 	
 	class TextField < JQueryAccessibleField
@@ -53,6 +81,11 @@ class SwiftestScreen
 	link_item_class :checkbox, Checkbox
 	link_item_class :button, Button
 
+	#   Defines a dialog by the name provided (sym).
+	#   Dialogs' contents are defined just like screens - they're
+	# actually subclasses (both the Screen class and Descriptor),
+	# so they share all the same features, as well as some extra
+	# functionality (indicating how to open them, etc.).
 	def dialog sym, description, &block
 	  dialog_screen = SwiftestDialogScreen.new(description)
 	  DialogDescriptor.new(dialog_screen).instance_eval &block
@@ -66,6 +99,9 @@ class SwiftestScreen
 	end
   end
 
+  # Adds two extra methods for use when describing a dialog;
+  # one which describes how to show the dialog, and one for
+  # describing how to get the document object out of it.
   class DialogDescriptor < ScreenDescriptor
 	def show &block
 	  @metaklass.send :define_method, :show, &block
@@ -76,12 +112,15 @@ class SwiftestScreen
 	end
   end
 
+  # Adds a given screen to the internal listing of all screens.
   def self.add_screen(screen)
 	@@screens ||= []
 	@@screens << screen
 	screen
   end
 
+  # Starts describing a new screen.  The actual description process
+  # is handled by ScreenDescriptor.
   def self.describe_screen(description, &block)
 	screen = SwiftestScreen.new(description)
 	ScreenDescriptor.new(screen).instance_eval &block
@@ -93,16 +132,21 @@ class SwiftestScreen
 	@@screens
   end
 
-  def locate(jq)
-	top.jQuery(jq)
+  # Screens know how to locate objects in themselves given a 
+  # selector.  This is overridable so that, e.g., dialogs can
+  # evaluate that selector within the context of the dialog 
+  # instead.
+  def locate(selector)
+	jQuery(selector)
   end
 
   def inspect
 	"<#{self.class.name}: #{@description}>"
   end
 
-  # the top accessor may be used internally - e.g. by current_when's delegate.
-  # it's set by SwiftestEnvironment#init_screens
+  # The 'top' accessor may be used internally - e.g. by
+  # current_when's delegate.
+  #   It's set by SwiftestEnvironment#init_screens.
   attr_accessor :top
   attr_accessor :description
 
@@ -113,9 +157,13 @@ class SwiftestScreen
   end
 end
 
+# Dialog screens only differ from screens in that their
+# object locating mechanism starts from the dialog's document,
+# instead of the very top level.
 class SwiftestDialogScreen < SwiftestScreen
-  def locate(jq)
-	top.jQuery(document).find(jq)
+  def locate(selector)
+	jQuery(document).find(selector)
   end
 end
 
+# vim: set sw=2:

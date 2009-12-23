@@ -78,6 +78,7 @@ class Swiftest
   end
 
   def stop
+	# Should kill the app here.
 	@reader_thread.join
   end
 
