@@ -13,9 +13,14 @@ class Swiftest
   class JavascriptError < StandardError; end
   include SwiftestCommands
 
-  def initialize(path)
-	@descriptor_path = path
-	@relative_dir = File.dirname(@descriptor_path)
+  def initialize(descriptor_path, initial_content=nil)
+	@descriptor_path = descriptor_path
+
+	@relative_dir = if initial_content
+					  initial_content
+					else
+					  File.dirname(@descriptor_path)
+					end
 
 	@descriptor_xml = File.read(@descriptor_path)
 
@@ -57,7 +62,7 @@ class Swiftest
 	end
 
 	# Open up the modified descriptor with ADL.
-	@pipe, @started = IO.popen("adl #@new_descriptor_file 1>&2", "r+"), true
+	@pipe, @started = IO.popen("adl #@new_descriptor_file #@relative_dir 1>&2", "r+"), true
 
 	# Start a thread to pipe through output from adl
 	@reader_thread = Thread.start do 
