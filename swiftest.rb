@@ -144,9 +144,6 @@ class Swiftest
   end
 
   def cleanup
-	STDERR.puts "! not doing cleanup"
-	return
-
 	File.unlink @new_descriptor_file rescue true
 	File.unlink File.join(@relative_dir, @new_content_file) rescue true
 	File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
