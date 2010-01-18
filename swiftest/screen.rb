@@ -137,7 +137,7 @@ class SwiftestScreen
   # evaluate that selector within the context of the dialog 
   # instead.
   def locate(selector)
-	jQuery(selector)
+	top.jQuery(selector)
   end
 
   def inspect
@@ -162,7 +162,7 @@ end
 # instead of the very top level.
 class SwiftestDialogScreen < SwiftestScreen
   def locate(selector)
-	jQuery(document).find(selector)
+	top.jQuery(document).find(selector)
   end
 end
 
