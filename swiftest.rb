@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'hpricot'
 require 'socket'
-  require 'open4'
+require 'open4'
 
 SWIFTEST_BASE = File.dirname(__FILE__)
 
