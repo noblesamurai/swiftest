@@ -1,4 +1,4 @@
-require 'swiftest/screen'
+require File.join(File.dirname(__FILE__), 'screen')
 
 module SwiftestEnvironment
   # To be called after all SwiftestScreen (and derived) instances

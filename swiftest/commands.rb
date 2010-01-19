@@ -1,4 +1,4 @@
-require 'swiftest/jsescape'
+require File.join(File.dirname(__FILE__), 'jsescape')
 
 module SwiftestCommands
   def alert(msg)

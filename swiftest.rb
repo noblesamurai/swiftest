@@ -2,11 +2,11 @@ require 'rubygems'
 require 'hpricot'
 require 'socket'
 
-require 'swiftest/commands'
-require 'swiftest/tools'
-require 'swiftest/jsescape'
-
 SWIFTEST_BASE = File.dirname(__FILE__)
+
+require File.join(SWIFTEST_BASE, 'swiftest/commands')
+require File.join(SWIFTEST_BASE, 'swiftest/tools')
+require File.join(SWIFTEST_BASE, 'swiftest/jsescape')
 
 class Swiftest
   class AlreadyStartedError < StandardError; end
