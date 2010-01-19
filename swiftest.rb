@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'hpricot'
 require 'socket'
+  require 'open4'
 
 SWIFTEST_BASE = File.dirname(__FILE__)
 
@@ -32,7 +33,6 @@ class Swiftest
   # Bootstrap the application.
   def start
 	raise AlreadyStartedError if @started
-	STDERR.puts "starting Swiftest"
 
 	@server = TCPServer.open(0)
 	@port = @server.addr[1]
@@ -62,29 +62,42 @@ class Swiftest
 	end
 
 	# Open up the modified descriptor with ADL.
-	@pipe, @started = IO.popen("adl #@new_descriptor_file #@relative_dir 1>&2", "r+"), true
+
+	@pid, @stdin, @stdout, @stderr = Open4.popen4("adl #@new_descriptor_file #@relative_dir")
+	@started = true
+	at_exit do stop end
 
 	# Start a thread to pipe through output from adl
 	@reader_thread = Thread.start do 
-	  while true
-		data = @pipe.read(1024)
-		break unless data
-		puts data
+	  begin
+		# TODO: we could store the data coming in on stdout.
+		# We could also do select() across stdout, stderr?
+		while true
+		  data = @stdout.read(1024)
+		  break unless data
+		end
+	  rescue IOError
+		STDERR.puts "ioerror in reader thread: #$!"
 	  end
-	  Process.waitpid(@pipe.pid)
-	  STDERR.puts "need to kill this ship!"
-	  cleanup
+
+	  stop
 	end
 
 	# Block for the client
-	puts "waiting for connection from application"
 	@client = @server.accept
-	puts "accepted #{@client.inspect}"
   end
 
   def stop
-	# Should kill the app here.
+	return unless @started
+
+	@started = false
+	# When we kill adl, reader_thread will
+	# probably try to stop us again here.
+
+	Process.kill "TERM", @pid rescue false
 	@reader_thread.join
+
+	cleanup
   end
 
   def send_command command, *args
