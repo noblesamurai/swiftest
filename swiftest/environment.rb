@@ -12,7 +12,7 @@ module SwiftestEnvironment
   # asserting that it's current.
   def switch_screen(screen)
 	if not screen.current?
-	  top.alert("failed to switch_screen to #{screen.description} - not current")
+	  raise "failed to switch_screen to #{screen.description} - not current"
 	  exit
 	end
 
