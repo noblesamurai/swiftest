@@ -64,7 +64,7 @@ class SwiftestScreen
 	  def value=(new_val); locate.val(new_val); end
 	end
 
-	class Checkbox < JQueryAccessibleField
+	class CheckBox < JQueryAccessibleField
 	  def initialize(*args); super; end
 
 	  def checked; locate.attr('checked'); end
@@ -77,9 +77,18 @@ class SwiftestScreen
 	  def click; locate.click; end
 	end
 
+	class SelectBox < JQueryAccessibleField
+	  # Glorified TextField?
+	  def initialize(*args); super; end
+
+	  def value; locate.val; end
+	  def value=(new_val); locate.val(new_val); end
+	end
+
 	link_item_class :text_field, TextField
-	link_item_class :checkbox, Checkbox
+	link_item_class :check_box, CheckBox
 	link_item_class :button, Button
+	link_item_class :select_box, SelectBox
 
 	#   Defines a dialog by the name provided (sym).
 	#   Dialogs' contents are defined just like screens - they're
