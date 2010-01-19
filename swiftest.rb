@@ -94,9 +94,18 @@ class Swiftest
 	# When we kill adl, reader_thread will
 	# probably try to stop us again here.
 
-	Process.kill "TERM", @pid rescue false
-	@reader_thread.join
+	begin
+	  Timeout.timeout(10) do
+		Process.kill "TERM", @pid rescue false
+		Process.wait @pid
+	  end
+	rescue Timeout::Error
+	  STDERR.puts "process #@pid not dying; killing (not really an error state with AIR)"
+	  Process.kill "KILL", @pid rescue false
+	  Process.wait @pid
+	end
 
+	@reader_thread.join
 	cleanup
   end
 
