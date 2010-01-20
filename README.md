@@ -5,7 +5,7 @@
 
 _swiftest_ is a platform written in Ruby for automating Adobe AIR applications which use HTML and JavaScript for their UI. Its primary use case is in **testing**.
 
-_swiftest_ is **not** a testing framework. One uses _swiftest_ **to provide the connection** to your AIR application, which you then instrument in your tests. We suggest [Cucumber](http://cukes.info) for writing your tests.
+_swiftest_ is **not** a testing framework. One uses _swiftest_ **to provide the connection** to your AIR application, which you then instrument in your tests. I suggest [Cucumber](http://cukes.info) for writing your tests.
 
 In addition to the ability to make arbitrary JavaScript calls without encountering the dread sandbox violation warning, _swiftest_ provides a set of methods and classes which ease in describing and abstracting away the details of the UI of your program, allowing you to automate and test it with ease.
 
@@ -136,7 +136,9 @@ This Transform will help us later on, by translating a matched part of text like
 
 It's trivial to use a transform for the above rule, too, to make a generic helper to ensure a given screen is being shown.
 
-Note that `switch_screen` cannot actually cause your program to move from one screen to another - it only changes the @screen object, and ensures that the given screen is indeed the one being displayed.  You will probably need special logic to move the program from one state to another if it's unpredictable from where you'll be encountering scenarios.
+Note that `switch_screen` cannot actually cause your program to move from one screen to another - it only changes the `@screen` object, and ensures that the given screen is indeed the one being displayed by checking its `current_when` clause.
+
+You will probably need special logic to move the program from one state to another if it's unpredictable from where you'll be encountering scenarios.
 
     When /^the user clicks (the [A-Za-z ]+ button)$/ do |button|
       button.click
