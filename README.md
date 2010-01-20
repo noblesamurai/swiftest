@@ -50,28 +50,29 @@ An environment also initialises the application, putting it into a state ready f
       include SwiftestEnvironment
 
       def environment_initialize
-        super
-
+        init_screens
         switch_screen MainMenuScreen
       end
     end
 
 ### screens
 
-A **screen** is the main helper in _swiftest_. Using `SwiftestScreen.describe_screen`, you tell _swiftest_ what objects are available on that screen, and where to find them:
+A **screen** is the main helper in _swiftest_. Using `SwiftestScreen.describe_screen`, you tell _swiftest_ what objects are available on that screen, where to find them, and how to know if that screen is really the one that's being shown:
 
     MainMenuScreen = SwiftestScreen.describe_screen("the main menu") do
-      text_field :new_project_name, "#new_project input[name='name']"
-      button :new_project_create, "#new_project button" {|button| button.text == "Create"}
-      
-      button :load_project, "#load_project button"
+      text_field :message, "#message input[name='destination']"
+      button :show_message, "#message button" {|button| button.text == "Show"}
 
       check_box :show_at_startup, "input#startup-show"
+
+      current_when do
+        top.jQuery("#mainmenu").is(":visible")
+      end
     end
 
-Screens' benefit are derived from the DRY principle - if you're only describing the location of any given element in one place, then later when it changes, your tests are all fixed with a single change - instead of changing every test.
+Screens' benefits are derived from the DRY principle - if you're only describing the location of any given element in one place, then later when it changes, your tests are all fixed with a single change - instead of changing every test.
 
-Internally, their elements are selected using jQuery selectors and arbitrary code disambiguators - helpful if a regular selector cannot give you the granularity you need (above, we're finding a button based on its actual textual content, as in `<button>Create</button>`). Here's how we use the code:
+Internally, their elements are selected using jQuery selectors and arbitrary code disambiguators - helpful if a regular selector cannot give you the granularity you need (above, we're finding a button based on its actual textual content, as in `<button>Show</button>`). Here's how we use the code to do an RSpec-like test:
 
     class << self
       include MyEnvironment
@@ -84,6 +85,85 @@ Internally, their elements are selected using jQuery selectors and arbitrary cod
 
     @screen.show_at_startup.checked = true
 
-    @screen.new_project_name.value = "My Project"
-    @screen.new_project_create.click
+    @screen.show_message.click
+    @screen.message.value.should == "Just kidding!"
+
+## Cucumber
+
+[Cucumber](http://cukes.info) lets you write plain-English tests for BDD which make sense. Check it out.
+
+    Feature: clicky buttons
+      In order to click buttons,
+      clicky buttons should be able to
+      be clicked
+      by people wishing to click buttons.
+
+      Background:
+        Given the application is open
+
+      Scenario:
+        Given the user sees the main menu
+        When the user clicks the show message button
+        Then the message text field should contain the value "Just kidding!"
+
+Above is a highly unlikely scenario. Here's how we'd write some Cucumber with _swiftest_ to make it run:
+
+    Given /^the application is open$/ do
+      class << self
+        include MyEnvironment
+      end
+
+      # use newOrRecover to not re-open the application for every scenario
+      @swiftest = Swiftest.newOrRecover("my_app.xml")
+
+      if not @swiftest.started?
+        @swiftest.start
+        environment_initialize
+      end
+    end
+
+The Background is executed before every scenario - hence, we protect against reopening the AIR application again and again by using `newOrRecover`. Alternatively, you may wish to close and re-open the application for every scenario to ensure no state carries over (keeping in mind that scenarios should always work independently of each other).
+
+    Transform /^the ([A-Za-z ]+) (?:button|text field)$/ do |field_name|
+      @screen.send(field_name.downcase.gsub(' ', '_'))
+    end
+
+This Transform will help us later on, by translating a matched part of text like "the clicky button" into (hopefully) the actual button called `clicky` on `@screen`.
+
+    Given /^the user sees the main menu$/ do
+      switch_screen MainMenuScreen
+    end
+
+It's trivial to use a transform for the above rule, too, to make a generic helper to ensure a given screen is being shown.
+
+Note that `switch_screen` cannot actually cause your program to move from one screen to another - it only changes the @screen object, and ensures that the given screen is indeed the one being displayed.  You will probably need special logic to move the program from one state to another if it's unpredictable from where you'll be encountering scenarios.
+
+    When /^the user clicks (the [A-Za-z ]+ button)$/ do |button|
+      button.click
+    end
+
+Here's where the transform magic takes over. Cucumber tries running capture groups in statements against each of the Transform statements - if one matches, that gets applied to the text before being returned to your block.
+
+In this case, the capture group in "the user clicks ..." matches perfectly the Transform statement before, and hence the value of `button` will be the field on `@screen` which matches.
+
+    Then /^(the [A-Za-z ]+ text field) should contain the value "([^"]+)"$/ do |text_field, value|
+      text_field.value.should == value
+    end
+
+Hopefully this is self-explanatory. The first capture group again matches the Transform, and we get a real field out of `text_field`, whose value is compared to the plain text capture `value` with an RSpec assert (which comes with Cucumber).
+
+## Contributors
+
+ - [Arlen Cuss](http://github.com/celtic)
+ - [You?](http://github.com/celtic/swiftest/fork) (click to fork)
+
+## License
+
+Copyright 2010 Arlen Cuss
+
+Swiftest is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Swiftest is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Swiftest.  If not, see http://www.gnu.org/licenses/.
 
