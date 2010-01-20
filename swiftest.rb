@@ -116,7 +116,7 @@ class Swiftest
 	# probably try to stop us again here.
 
 	begin
-	  Timeout.timeout(10) do
+	  Timeout.timeout(3) do
 		Process.kill "TERM", @pid rescue false
 		Process.wait @pid
 	  end
