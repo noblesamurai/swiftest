@@ -14,6 +14,17 @@ class Swiftest
   class JavascriptError < StandardError; end
   include SwiftestCommands
 
+  def self.newOrRecover(*args)
+	@@storedState ||= {}
+	if @@storedState.keys.include? args
+	  return @@storedState[args]
+	end
+
+	swiftest = new(*args)
+	@@storedState[args] = swiftest
+	swiftest
+  end
+
   def initialize(descriptor_path, initial_content=nil)
 	@descriptor_path = descriptor_path
 
@@ -67,14 +78,24 @@ class Swiftest
 	@started = true
 	at_exit do stop end
 
+	@stdlog = ''
+
 	# Start a thread to pipe through output from adl
 	@reader_thread = Thread.start do 
 	  begin
-		# TODO: we could store the data coming in on stdout.
-		# We could also do select() across stdout, stderr?
-		while true
-		  data = @stdout.read(1024)
-		  break unless data
+		data_ok = true
+
+		while data_ok
+		  triggered = IO.select([@stdout, @stderr])
+		  break unless triggered and triggered[0]
+		  triggered[0].each do |io|
+			data = io.readline	# rarely not line based, so this should be ok.
+			if data
+			  @stdlog += data
+			else
+			  data_ok = false
+			end
+		  end
 		end
 	  rescue IOError
 		STDERR.puts "ioerror in reader thread: #$!"
@@ -169,6 +190,10 @@ class Swiftest
 	File.unlink @new_descriptor_file rescue true
 	File.unlink File.join(@relative_dir, @new_content_file) rescue true
 	File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
+  end
+
+  def started?
+	@started
   end
 end
 
