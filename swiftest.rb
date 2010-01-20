@@ -16,16 +16,15 @@ class Swiftest
 
   def self.newOrRecover(*args)
 	@@storedState ||= {}
-	if @@storedState.keys.include? args
-	  return @@storedState[args]
-	end
+	return @@storedState[args.hash] if @@storedState.keys.include? args.hash
 
-	swiftest = new(*args)
-	@@storedState[args] = swiftest
+	swiftest = new(args.hash, *args)
+	@@storedState[args.hash] = swiftest
 	swiftest
   end
 
-  def initialize(descriptor_path, initial_content=nil)
+  def initialize(hash, descriptor_path, initial_content=nil)
+	@hash = hash
 	@descriptor_path = descriptor_path
 
 	@relative_dir = if initial_content
@@ -98,7 +97,7 @@ class Swiftest
 		  end
 		end
 	  rescue IOError
-		STDERR.puts "ioerror in reader thread: #$!"
+		# STDERR.puts "ioerror in reader thread: #$!"
 	  end
 
 	  stop
@@ -121,7 +120,7 @@ class Swiftest
 		Process.wait @pid
 	  end
 	rescue Timeout::Error
-	  STDERR.puts "process #@pid not dying; killing (not really an error state with AIR)"
+	  # STDERR.puts "process #@pid not dying; killing (not really an error state with AIR)"
 	  Process.kill "KILL", @pid rescue false
 	  Process.wait @pid
 	end
@@ -190,6 +189,8 @@ class Swiftest
 	File.unlink @new_descriptor_file rescue true
 	File.unlink File.join(@relative_dir, @new_content_file) rescue true
 	File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
+
+	@@storedState.delete @hash
   end
 
   def started?
