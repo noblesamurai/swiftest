@@ -77,35 +77,11 @@ class SwiftestScreen
 	  end
 	  def found?; locate.length > 0; end
 
-	  if false
-		class << self
-		  protected
-		  # Unfortunately, require_found_for throws away blocks!
-		  # Ruby 1.8's define_method doesn't allow blocks through.
-		  # (not even with yield/block_given?)
-		  def require_found_for *methods
-			methods.each do |fn|
-			  real_method = instance_method(fn)
-			  define_method(fn) do |*a|
-				raise ElementNotFoundError, "Cannot find element on page" if not found?
-				real_method.bind(self).call *a
-			  end
-			end
-		  end
-		end
-	  else
-		# Disabled
-		def self.require_found_for *a
-		end
-	  end
-
 	  def blur; locate.blur; end
 	  def enabled?; !locate.attr("disabled"); end
 	  def enabled=(val); locate.attr("disabled", !val); end
 	  def disabled?; !enabled?; end
 	  def disabled=(val); enabled = !val; end
-
-	  require_found_for :blur, :enabled?, :enabled=, :disabled?, :disabled=
 
 	  protected
 	  def locate; @screen.locate(@selector, &@disambiguator); end
@@ -114,31 +90,21 @@ class SwiftestScreen
 	class TextField < JQueryAccessibleField
 	  def value; locate.val; end 
 	  def value=(new_val); locate.val(new_val); locate.change; end
-
-	  require_found_for :value, :value=
 	end
 
 	class CheckBox < JQueryAccessibleField
 	  def checked?; locate.attr('checked'); end
 	  def checked=(new_val); locate.attr('checked', new_val); locate.change; end
-
-	  require_found_for :checked?, :checked=
 	end
 
 	class Button < JQueryAccessibleField
-	  def initialize *a, &b; super(*a, &b); end
-
 	  def click; locate.click; end
-
-	  require_found_for :click
 	end
 
 	class SelectBox < JQueryAccessibleField
 	  # Glorified TextField?
 	  def value; locate.val; end
 	  def value=(new_val); locate.val(new_val); locate.change; end
-
-	  require_found_for :value, :value=
 	end
 
 	link_item_class :text_field, TextField
