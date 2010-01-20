@@ -11,7 +11,7 @@ In addition to the ability to make arbitrary JavaScript calls without encounteri
 
 ## method
 
-On startup, _swiftest_ doctors a copy of the base file of your AIR app, injecting [the JavaScript which receives commands and executes them](http://github.com/celtic/swiftest/blob/master/inject.js#L159) in the context of your application.
+On startup, _swiftest_ doctors a copy of the base file of your AIR app, injecting [the JavaScript which receives commands and executes them](http://github.com/celtic/swiftest/blob/master/inject.js#L176) in the context of your application.
 
 It then waits for the AIR application to connect back to itself, and then automation is ready to go.
 
