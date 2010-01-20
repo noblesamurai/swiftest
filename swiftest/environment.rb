@@ -17,7 +17,7 @@ module SwiftestEnvironment
 	  begin
 		Timeout.timeout(5.0) do
 		  sleep 1.0
-		  sleep 1.0 while @last_successful_switch_screen.current?
+		  sleep 1.0 while @screen.current? if @screen
 		end
 		if not screen.current?
 		  # Any other screen current?
@@ -28,7 +28,7 @@ module SwiftestEnvironment
 	  end
 	end
 
-	@screen = @last_successful_switch_screen = screen
+	@screen = screen
   end
 
   # Convenience pass-through to the Swiftest object.

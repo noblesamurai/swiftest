@@ -43,11 +43,14 @@ class SwiftestScreen
 	#   As a result, much of the logic of how this works has been moved
 	# into +link_item_class_constructor+.
 	def self.link_item_class(constructor_name, klass)
-	  class_eval <<-EOE
-		def #{constructor_name}(field_name, selector, &disambiguator)
-		  link_item_class_constructor(#{klass}, field_name, selector, &disambiguator)
-		end
-	  EOE
+	  [constructor_name, constructor_name.to_s + "_array"].each do |ctor|
+		class_eval <<-EOE
+		  def #{ctor}(field_name, selector, &disambiguator)
+			link_item_class_constructor(#{klass}, field_name, selector, &disambiguator)
+			link_item_class_constructor(#{klass}, field_name, selector, &disambiguator)
+		  end
+		EOE
+	  end
 	end
 
 	#   This method is called every time the constructor created by
@@ -72,10 +75,15 @@ class SwiftestScreen
 	#   It provides a locate method for subclasses which just
 	# defers to the screen.
 	class JQueryAccessibleField
-	  def initialize(screen, selector, &disambiguator)
-		@screen, @selector, @disambiguator = screen, selector, disambiguator
+	  def initialize(screen, selector, index=nil, &disambiguator)
+		@screen, @selector, @index, @disambiguator = screen, selector, index, disambiguator
 	  end
+	  def length; locate.length; end
 	  def found?; locate.length > 0; end
+	  def [](index)
+		raise "Cannot reindex an already indexed #{self.class}" if @index
+		self.class.new(@screen, @selector, index, &@disambiguator)
+	  end
 
 	  def blur; locate.blur; end
 	  def enabled?; !locate.attr("disabled"); end
@@ -84,7 +92,14 @@ class SwiftestScreen
 	  def disabled=(val); enabled = !val; end
 
 	  protected
-	  def locate; @screen.locate(@selector, &@disambiguator); end
+	  def locate
+		loc = @screen.locate(@selector, &@disambiguator)
+		return loc unless @index
+
+		length = loc.length
+		raise ElementNotFoundError, "index #{@index} >= length #{length}" if @index >= length
+		loc.eq(@index)
+	  end
 	end
 	
 	class TextField < JQueryAccessibleField
