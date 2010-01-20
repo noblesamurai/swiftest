@@ -154,12 +154,12 @@ In this case, the capture group in "the user clicks ..." matches perfectly the T
 
 Hopefully this is self-explanatory. The first capture group again matches the Transform, and we get a real field out of `text_field`, whose value is compared to the plain text capture `value` with an RSpec assert (which comes with Cucumber).
 
-## Contributors
+## contributors
 
  - [Arlen Cuss](http://github.com/celtic)
  - [You?](http://github.com/celtic/swiftest/fork) (click to fork)
 
-## License
+## license
 
 Copyright 2010 Arlen Cuss
 
