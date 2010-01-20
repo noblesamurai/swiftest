@@ -15,14 +15,15 @@ module SwiftestEnvironment
   def switch_screen(screen)
 	if not screen.current?
 	  begin
-		Timeout.timeout(wait_for_switch) do
+		Timeout.timeout(5.0) do
+		  sleep 1.0
 		  sleep 1.0 while @last_successful_switch_screen.current?
 		end
 		if not screen.current?
 		  # Any other screen current?
 		  raise "CONCLUSION: NO SCREEN IS CURRENT"
 		end
-	  rescue Timeout::TimeoutError
+	  rescue Timeout::Error
 		raise "failed to switch_screen to #{screen.description} - not current"
 	  end
 	end
