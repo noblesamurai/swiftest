@@ -2,6 +2,8 @@
 # (created by describe_screen)  The process of *how* it gains
 # its methods is described in further detail below.
 class SwiftestScreen
+  # Raised when no element was found
+  class ElementNotFoundError < StandardError; end
 
   # Instances of ScreenDescriptor are the context for evaluation
   # of the block given to describe_screen.  (i.e. this provides
@@ -32,14 +34,34 @@ class SwiftestScreen
 	# We can now use the method "text_field" when describing a screen:
 	#     text_field :username, "input#username"
 	#
-	# Now a property (method) is defined on that screen called 'username',
-	# which is a new TextField with the given selector.
+	#   Now a property (method) is defined on that screen called
+	# 'username', which is a new TextField with the given selector.
+	#
+	#   Unfortunately, due to the constructor function being created
+	# needing to be able to take blocks, we cannot use +define_function+,
+	# and instead need to do an ugly eval.
+	#   As a result, much of the logic of how this works has been moved
+	# into +link_item_class_constructor+.
 	def self.link_item_class(constructor_name, klass)
-	  define_method(constructor_name) do |field_name, selector|
-		@metaklass.send :define_method, field_name do 
-		  instance_variable_get("@#{field_name}")
+	  class_eval <<-EOE
+		def #{constructor_name}(field_name, selector, &disambiguator)
+		  link_item_class_constructor(#{klass}, field_name, selector, &disambiguator)
 		end
-		@screen.instance_variable_set "@#{field_name}", klass.new(@screen, selector)
+	  EOE
+	end
+
+	#   This method is called every time the constructor created by
+	# link_item_class is called.
+	#   It receives the class of the field type to be created, the name
+	# of the field to make, and the jQuery selector which points to
+	# the object in the AIR app which this field corresponds to.
+	#   Optionally, a block can be supplied which will be run against
+	# the returned objects in order to select, if the selector matches
+	# more than one.
+	def link_item_class_constructor klass, field_name, selector, &disambiguator
+	  @screen.instance_variable_set "@#{field_name}", klass.new(@screen, selector, &disambiguator)
+	  @metaklass.send :define_method, field_name do 
+		instance_variable_get("@#{field_name}")
 	  end
 	end
 
@@ -50,22 +72,30 @@ class SwiftestScreen
 	#   It provides a locate method for subclasses which just
 	# defers to the screen.
 	class JQueryAccessibleField
-	  def initialize(screen, selector); @screen, @selector = screen, selector; end
+	  def initialize(screen, selector, &disambiguator)
+		@screen, @selector, @disambiguator = screen, selector, disambiguator
+	  end
 	  def found?; locate.length > 0; end
 
-	  class << self
-		protected
-		# Unfortunately, require_found_for throws away blocks!
-		# Ruby 1.8's define_method doesn't allow blocks through.
-		# (not even with yield/block_given?)
-		def require_found_for *methods
-		  methods.each do |fn|
-			real_method = instance_method(fn)
-			define_method(fn) do |*a|
-			  raise "Cannot find element on page" if not found?
-			  real_method.bind(self).call *a
+	  if false
+		class << self
+		  protected
+		  # Unfortunately, require_found_for throws away blocks!
+		  # Ruby 1.8's define_method doesn't allow blocks through.
+		  # (not even with yield/block_given?)
+		  def require_found_for *methods
+			methods.each do |fn|
+			  real_method = instance_method(fn)
+			  define_method(fn) do |*a|
+				raise ElementNotFoundError, "Cannot find element on page" if not found?
+				real_method.bind(self).call *a
+			  end
 			end
 		  end
+		end
+	  else
+		# Disabled
+		def self.require_found_for *a
 		end
 	  end
 
@@ -78,12 +108,10 @@ class SwiftestScreen
 	  require_found_for :blur, :enabled?, :enabled=, :disabled?, :disabled=
 
 	  protected
-	  def locate; @screen.locate(@selector); end
+	  def locate; @screen.locate(@selector, &@disambiguator); end
 	end
 	
 	class TextField < JQueryAccessibleField
-	  def initialize(*args); super; end
-
 	  def value; locate.val; end 
 	  def value=(new_val); locate.val(new_val); locate.change; end
 
@@ -91,8 +119,6 @@ class SwiftestScreen
 	end
 
 	class CheckBox < JQueryAccessibleField
-	  def initialize(*args); super; end
-
 	  def checked?; locate.attr('checked'); end
 	  def checked=(new_val); locate.attr('checked', new_val); locate.change; end
 
@@ -100,7 +126,7 @@ class SwiftestScreen
 	end
 
 	class Button < JQueryAccessibleField
-	  def initialize(*args); super; end
+	  def initialize *a, &b; super(*a, &b); end
 
 	  def click; locate.click; end
 
@@ -109,8 +135,6 @@ class SwiftestScreen
 
 	class SelectBox < JQueryAccessibleField
 	  # Glorified TextField?
-	  def initialize(*args); super; end
-
 	  def value; locate.val; end
 	  def value=(new_val); locate.val(new_val); locate.change; end
 
@@ -173,11 +197,32 @@ class SwiftestScreen
 	@@screens
   end
 
+  # locate runs this screen's element locator, then uses
+  # the given disambiguator (if any) to narrow down which
+  # item is returned.
+  def locate(selector, &disambiguator)
+	found = element_locate(selector)
+
+	len = found.length
+	raise ElementNotFoundError, "Locator found nothing for \"#{selector}\"" if len == 0
+
+	if disambiguator
+	  # Optimised for minimum number of calls into JavaScript.
+	  (0...len).each do |i|
+		feqi = found.eq(i)
+		return feqi if disambiguator.call(feqi)
+	  end
+	  raise ElementNotFoundError, "Disambiguator returned nothing while disambiguating \"#{selector}\""
+	end
+
+	found
+  end
+
   # Screens know how to locate objects in themselves given a 
   # selector.  This is overridable so that, e.g., dialogs can
   # evaluate that selector within the context of the dialog 
   # instead.
-  def locate(selector)
+  def element_locate(selector)
 	top.jQuery(selector)
   end
 
@@ -199,10 +244,10 @@ class SwiftestScreen
 end
 
 # Dialog screens only differ from screens in that their
-# object locating mechanism starts from the dialog's document,
+# element locating mechanism starts from the dialog's document,
 # instead of the very top level.
 class SwiftestDialogScreen < SwiftestScreen
-  def locate(selector)
+  def element_locate(selector)
 	top.jQuery(document).find(selector)
   end
 end
