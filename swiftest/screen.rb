@@ -53,6 +53,30 @@ class SwiftestScreen
 	  def initialize(screen, selector); @screen, @selector = screen, selector; end
 	  def found?; locate.length > 0; end
 
+	  class << self
+		protected
+		# Unfortunately, require_found_for throws away blocks!
+		# Ruby 1.8's define_method doesn't allow blocks through.
+		# (not even with yield/block_given?)
+		def require_found_for *methods
+		  methods.each do |fn|
+			real_method = instance_method(fn)
+			define_method(fn) do |*a|
+			  raise "Cannot find element on page" if not found?
+			  real_method.bind(self).call *a
+			end
+		  end
+		end
+	  end
+
+	  def blur; locate.blur; end
+	  def enabled?; !locate.attr("disabled"); end
+	  def enabled=(val); locate.attr("disabled", !val); end
+	  def disabled?; !enabled?; end
+	  def disabled=(val); enabled = !val; end
+
+	  require_found_for :blur, :enabled?, :enabled=, :disabled?, :disabled=
+
 	  protected
 	  def locate; @screen.locate(@selector); end
 	end
@@ -61,20 +85,26 @@ class SwiftestScreen
 	  def initialize(*args); super; end
 
 	  def value; locate.val; end 
-	  def value=(new_val); locate.val(new_val); end
+	  def value=(new_val); locate.val(new_val); locate.change; end
+
+	  require_found_for :value, :value=
 	end
 
 	class CheckBox < JQueryAccessibleField
 	  def initialize(*args); super; end
 
-	  def checked; locate.attr('checked'); end
-	  def checked=(new_val); locate.attr('checked', new_val); end
+	  def checked?; locate.attr('checked'); end
+	  def checked=(new_val); locate.attr('checked', new_val); locate.change; end
+
+	  require_found_for :checked?, :checked=
 	end
 
 	class Button < JQueryAccessibleField
 	  def initialize(*args); super; end
 
 	  def click; locate.click; end
+
+	  require_found_for :click
 	end
 
 	class SelectBox < JQueryAccessibleField
@@ -82,7 +112,9 @@ class SwiftestScreen
 	  def initialize(*args); super; end
 
 	  def value; locate.val; end
-	  def value=(new_val); locate.val(new_val); end
+	  def value=(new_val); locate.val(new_val); locate.change; end
+
+	  require_found_for :value, :value=
 	end
 
 	link_item_class :text_field, TextField
