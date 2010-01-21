@@ -42,11 +42,7 @@ class Swiftest
 	@hash = hash
 	@descriptor_path = descriptor_path
 
-	@relative_dir = if initial_content
-					  initial_content
-					else
-					  File.dirname(@descriptor_path)
-					end
+	@relative_dir = initial_content ?  initial_content : File.dirname(@descriptor_path)
 
 	@descriptor_xml = File.read(@descriptor_path)
 
@@ -105,7 +101,11 @@ class Swiftest
 		  triggered[0].each do |io|
 			data = io.readline	# rarely not line based, so this should be ok.
 			if data
-			  @stdlog += data
+			  if ENV['SWIFTEST_LOGGING'] == 'realtime'
+				puts data
+			  else
+				@stdlog += data
+			  end
 			else
 			  data_ok = false
 			end
@@ -114,6 +114,8 @@ class Swiftest
 	  rescue IOError
 		# STDERR.puts "ioerror in reader thread: #$!"
 	  end
+
+	  puts @stdlog if ENV['SWIFTEST_LOGGING'] == 'post'
 
 	  stop
 	end
