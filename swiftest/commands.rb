@@ -16,14 +16,6 @@
 require File.join(File.dirname(__FILE__), 'jsescape')
 
 module SwiftestCommands
-  def alert(msg)
-	self.safeeval "alert(#{msg.javascript_escape});"
-  end
-
-  def safeeval(js)
-	send_command "safeeval", js
-  end
-
   #   Compiles a path of function calls made in the context
   # of an instance of this class.
   #   All calls return the same path object so chains work.
