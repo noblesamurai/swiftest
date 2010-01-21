@@ -81,9 +81,29 @@ $(function() {
 	}
   }
 
+  function redefine_builtins() {
+	top.air.trace("redefining builtins");
+	redefined_builtins = true;
+
+	top.confirm = null; function(msg) {
+	  top.air.trace("got confirm " + msg);
+
+	  return true;
+	}
+
+	//top.alert = null; /*function(msg) {
+	  //top.air.trace("got alert " + msg);
+	//} */
+  }
+
   var state_fncall_db = [];
+  var redefined_builtins = false;
+
   function process() {
 	var insufficientData = false;
+
+	if (!redefined_builtins)
+	  redefine_builtins();
 
 	expectBuffer = buffer;
 	while (!insufficientData) {
@@ -223,3 +243,4 @@ $(function() {
 
   socket.connect("127.0.0.1", SWIFTEST_PORT);
 });
+  
