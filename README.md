@@ -61,7 +61,7 @@ A **screen** is the main helper in _swiftest_. Using `SwiftestScreen.describe_sc
 
     MainMenuScreen = SwiftestScreen.describe_screen("the main menu") do
       text_field :message, "#message input[name='destination']"
-      button :show_message, "#message button" {|button| button.text == "Show"}
+      button :show_message, "#message button" { disambiguate {text == "Show"} }
 
       check_box :show_at_startup, "input#startup-show"
 
