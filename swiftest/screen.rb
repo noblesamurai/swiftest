@@ -30,7 +30,7 @@ class SwiftestScreen
 	end
 
 	# "This screen is current when <some code>."  Maps given
-	# block purely to be the function :current? on the screen.
+	# block purely to be the function +current?+ on the screen.
 	def current_when &code
 	  @metaklass.send :define_method, :current?, &code
 	end
@@ -38,10 +38,10 @@ class SwiftestScreen
 	#   I had disagreements with naming all the parameters and block
 	# params 'sym' and 'nsym' (and so on) here, so I've tried to make
 	# them more explanatory.
-	#   link_item_class creates a new method constructor method 
+	#   +link_item_class+ creates a new method constructor method 
 	# (right?).  It goes by the given name, and when called, adds a
-	# property on the resulting screen (by some given name "field_name")
-	# which points to a new single instance of the class "klass".
+	# property on the resulting screen (by some given name +field_name+)
+	# which points to a new single instance of the class +klass+.
 	#
 	# Example:
 	#     link_item_class :text_field, TextField
@@ -60,24 +60,37 @@ class SwiftestScreen
 	def self.link_item_class(constructor_name, klass)
 	  [constructor_name, constructor_name.to_s + "_array"].each do |ctor|
 		class_eval <<-EOE
-		  def #{ctor}(field_name, selector, &disambiguator)
-			link_item_class_constructor(#{klass}, field_name, selector, &disambiguator)
-			link_item_class_constructor(#{klass}, field_name, selector, &disambiguator)
+		  def #{ctor}(field_name, selector, &helper)
+			link_item_class_constructor(#{klass}, field_name, selector, &helper)
+			link_item_class_constructor(#{klass}, field_name, selector, &helper)
 		  end
 		EOE
 	  end
 	end
 
+	#   Helper class for +link_item_class+ - the +helper+ param is
+	# evaluated in the context of this, allowing subobjects (as per
+	# +ScreenDescriptor+), and a disambiguator.
+	class LinkItemHelperDescriptor < ScreenDescriptor
+	  def disambiguate &disambiguator
+		@screen.disambiguator = disambiguator
+	  end
+	end
+
 	#   This method is called every time the constructor created by
-	# link_item_class is called.
+	# +link_item_class+ is called.
 	#   It receives the class of the field type to be created, the name
 	# of the field to make, and the jQuery selector which points to
 	# the object in the AIR app which this field corresponds to.
-	#   Optionally, a block can be supplied which will be run against
-	# the returned objects in order to select, if the selector matches
-	# more than one.
-	def link_item_class_constructor klass, field_name, selector, &disambiguator
-	  @screen.instance_variable_set "@#{field_name}", klass.new(@screen, selector, &disambiguator)
+	#   Optionally, a block can be supplied which will be evaluated in
+	# the context of a +LinkItemHelperDescriptor+, itself being a
+	# +ScreenDescriptor+.  This may specify subobjects, or a disambiguator.
+	def link_item_class_constructor klass, field_name, selector, &helper
+	  target = klass.new(@screen, selector)
+
+	  LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
+
+	  @screen.instance_variable_set "@#{field_name}", target
 	  @metaklass.send :define_method, field_name do 
 		instance_variable_get("@#{field_name}")
 	  end
@@ -93,6 +106,7 @@ class SwiftestScreen
 	  def initialize(screen, selector, index=nil, &disambiguator)
 		@screen, @selector, @index, @disambiguator = screen, selector, index, disambiguator
 	  end
+
 	  def length; locate.length; end
 	  def found?; locate.length > 0; end
 	  def [](index)
@@ -105,6 +119,9 @@ class SwiftestScreen
 	  def enabled=(val); locate.attr("disabled", !val); end
 	  def disabled?; !enabled?; end
 	  def disabled=(val); enabled = !val; end
+	  def text; locate.text; end
+
+	  attr_accessor :disambiguator
 
 	  protected
 	  def locate
@@ -137,6 +154,7 @@ class SwiftestScreen
 	  def value=(new_val); locate.val(new_val); locate.change; end
 	end
 
+	link_item_class :item, JQueryAccessibleField
 	link_item_class :text_field, TextField
 	link_item_class :check_box, CheckBox
 	link_item_class :button, Button
