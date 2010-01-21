@@ -159,11 +159,9 @@ $(function() {
   }
 
   var commands = {
-	'safeeval': function(cmd) {
-	  return window.safeeval(cmd);
-	},
 	'fncall': function(path) {
 	  // Make the initial function call.
+	  // This isn't actually used at the moment ...
 	  var initial = path.shift();
 	  var current =	top[initial[0]].apply(this, initial[1]);
 
