@@ -62,7 +62,6 @@ class SwiftestScreen
 		class_eval <<-EOE
 		  def #{ctor}(field_name, selector, &helper)
 			link_item_class_constructor(#{klass}, field_name, selector, &helper)
-			link_item_class_constructor(#{klass}, field_name, selector, &helper)
 		  end
 		EOE
 	  end
@@ -87,71 +86,149 @@ class SwiftestScreen
 	# +ScreenDescriptor+.  This may specify subobjects, or a disambiguator.
 	def link_item_class_constructor klass, field_name, selector, &helper
 	  target = klass.new(@screen, selector)
-
+	  if helper
+		puts "running helper on target #{target.inspect} field name #{field_name} klass #{klass}"
+	  end
 	  LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
 
+	  puts "defining #{field_name} inside a #{self.class} on a #@screen targetted #{target}"
 	  @screen.instance_variable_set "@#{field_name}", target
 	  @metaklass.send :define_method, field_name do 
 		instance_variable_get("@#{field_name}")
 	  end
 	end
 
+	# Proxy for +JQueryAccessibleField+ which sets the field's
+	# +index+ before making its called, ensuring it gets unset
+	# afterward.
+	#   Invariants in +JQueryAccessibleField+ and the use of
+	# +takes_element+ therein ensure that the index gets
+	# consumed correctly (if it gets consumed at all, that is).
+	# We clean up here again incase the target function never
+	# actually calls +obtain+ in the field.
+	class IndexProxy
+	  def initialize(target, index)
+		@target, @index = target, index
+	  end
+
+	  def method_missing(sym, *args, &block)
+		# We set index on +@target+ and immediately call what we
+		# were proxied for.
+		#   +takes_element+ being used in the appropriate places
+		# means obtain will be called exactly once *if it's
+		# required*, which means we may need to clean up after it
+		# anyways.
+		@target.index = @index
+		@target.send sym, *args, &block ensure @target.index = nil
+	  end
+	end
+
 	#   Base class for any field accessible by jQuery.  Stores
-	# the screen and the selector.  Field types being used with
-	# link_item_class should inherit this class and use the same
-	# initialize signature.
-	#   It provides a locate method for subclasses which just
-	# defers to the screen.
-	class JQueryAccessibleField
-	  def initialize(screen, selector, index=nil, &disambiguator)
-		@screen, @selector, @index, @disambiguator = screen, selector, index, disambiguator
+	# the screen, selector and disambiguator.  Field types being
+	# used with +link_item_class+ should inherit this class,
+	# define the getters/setters, and use +takes_element+ to
+	# ensure that elements will be passed through.
+	class JQueryAccessibleField < SwiftestScreen
+	  def initialize(screen, selector, &disambiguator)
+		@screen, @selector, @disambiguator = screen, selector, disambiguator
 	  end
 
-	  def length; locate.length; end
-	  def found?; locate.length > 0; end
 	  def [](index)
+		# This raise hopefully never happens.
 		raise "Cannot reindex an already indexed #{self.class}" if @index
-		self.class.new(@screen, @selector, index, &@disambiguator)
+		IndexProxy.new(self, index)
 	  end
 
-	  def blur; locate.blur; end
-	  def enabled?; !locate.attr("disabled"); end
-	  def enabled=(val); locate.attr("disabled", !val); end
+	  def length; @element.length; end
+	  def found?; @element.length > 0; end
+
+	  def blur; @element.blur; end
+	  def enabled?; !@element.attr("disabled"); end
+	  def enabled=(val); @element.attr("disabled", !val); end
 	  def disabled?; !enabled?; end
 	  def disabled=(val); enabled = !val; end
-	  def text; locate.text; end
+	  def text; @element.text; end
+
+	  # Replaces the given functions with methods which check
+	  # the existence of +@element+ - if present, the call goes
+	  # through, but if not, it calls +obtain+ and sets it,
+	  # calls the target, then unsets +@element+.
+	  #   This ensures +obtain+ is only being called once per
+	  # (possible) chain of calls, meaning IndexProxy objects
+	  # won't get screwed around.
+	  def self.takes_element *names
+		names.each do |name|
+		  fn = self.instance_method(name)
+		  define_method(name) do |*args|
+			if @element
+			  fn.bind(self).call(*args)
+			else
+			  begin
+				@element = obtain
+				fn.bind(self).call(*args)
+			  ensure
+				@element = nil
+			  end
+			end
+		  end
+		end
+	  end
+
+	  takes_element :length, :found?
+	  takes_element :blur, :enabled?, :enabled=, :disabled?, :disabled=, :text
 
 	  attr_accessor :disambiguator
+	  attr_accessor :index
 
 	  protected
-	  def locate
+	  def element_locate(selector)
+		obtain.find(selector)
+	  end
+
+	  private
+	  # You cannot call +obtain+ more than once per call, as its
+	  # result is "consumed".
+	  def obtain
 		loc = @screen.locate(@selector, &@disambiguator)
 		return loc unless @index
 
+		# We 'consume' +@index+ to ensure its effects don't live
+		# on past, say, an exception, thereby causing other things
+		# to die ...
+		index, @index = @index, nil
+
 		length = loc.length
-		raise ElementNotFoundError, "index #{@index} >= length #{length}" if @index >= length
-		loc.eq(@index)
+		raise ElementNotFoundError, "index #{index} >= length #{length}" if index >= length
+		loc.eq(index)
 	  end
 	end
 	
 	class TextField < JQueryAccessibleField
-	  def value; locate.val; end 
-	  def value=(new_val); locate.val(new_val); locate.change; end
+	  def value; @element.val; end 
+	  def value=(new_val); @element.val(new_val).change; end
+
+	  takes_element :value, :value=
 	end
 
 	class CheckBox < JQueryAccessibleField
-	  def checked?; locate.attr('checked'); end
-	  def checked=(new_val); locate.attr('checked', new_val); locate.change; end
+	  def checked?; @element.attr('checked'); end
+	  def checked=(new_val); @element.attr('checked', new_val).change; end
+
+	  takes_element :checked?, :checked=
 	end
 
 	class Button < JQueryAccessibleField
-	  def click; locate.click; end
+	  def click; @element.click; end
+
+	  takes_element :click
 	end
 
 	class SelectBox < JQueryAccessibleField
 	  # Glorified TextField?
-	  def value; locate.val; end
-	  def value=(new_val); locate.val(new_val); locate.change; end
+	  def value; @element.val; end
+	  def value=(new_val); @element.val(new_val).change; end
+
+	  takes_element :value, :value=
 	end
 
 	link_item_class :item, JQueryAccessibleField
@@ -224,7 +301,7 @@ class SwiftestScreen
 	  # Optimised for minimum number of calls into JavaScript.
 	  (0...len).each do |i|
 		feqi = found.eq(i)
-		return feqi if disambiguator.call(feqi)
+		return feqi if feqi.instance_eval(&disambiguator)
 	  end
 	  raise ElementNotFoundError, "Disambiguator returned nothing while disambiguating \"#{selector}\""
 	end
