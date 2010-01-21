@@ -86,12 +86,8 @@ class SwiftestScreen
 	# +ScreenDescriptor+.  This may specify subobjects, or a disambiguator.
 	def link_item_class_constructor klass, field_name, selector, &helper
 	  target = klass.new(@screen, selector)
-	  if helper
-		puts "running helper on target #{target.inspect} field name #{field_name} klass #{klass}"
-	  end
 	  LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
 
-	  puts "defining #{field_name} inside a #{self.class} on a #@screen targetted #{target}"
 	  @screen.instance_variable_set "@#{field_name}", target
 	  @metaklass.send :define_method, field_name do 
 		instance_variable_get("@#{field_name}")
