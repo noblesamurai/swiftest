@@ -85,7 +85,7 @@ $(function() {
 	top.air.trace("redefining builtins");
 	redefined_builtins = true;
 
-	top.confirm = null; function(msg) {
+	top.confirm = function(msg) {
 	  top.air.trace("got confirm " + msg);
 
 	  return true;
