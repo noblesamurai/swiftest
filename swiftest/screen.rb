@@ -58,13 +58,15 @@ class SwiftestScreen
 	#   As a result, much of the logic of how this works has been moved
 	# into +link_item_class_constructor+.
 	def self.link_item_class(constructor_name, klass)
-	  [constructor_name, constructor_name.to_s + "_array"].each do |ctor|
-		class_eval <<-EOE
-		  def #{ctor}(field_name, selector, &helper)
-			link_item_class_constructor(#{klass}, field_name, selector, &helper)
-		  end
-		EOE
-	  end
+	  class_eval <<-EOE
+		def #{constructor_name}(field_name, selector, &helper)
+		  link_item_class_constructor(#{klass}, field_name, selector, &helper)
+		end
+
+		def #{constructor_name}_array(field_name, selector, &helper)
+		  link_item_class_constructor(#{klass}, field_name, selector, true, &helper)
+		end
+	  EOE
 	end
 
 	#   Helper class for +link_item_class+ - the +helper+ param is
@@ -76,6 +78,31 @@ class SwiftestScreen
 	  end
 	end
 
+	# Exposes a hash as an array whose bounds can be set fairly
+	# arbitrarily, undefined elements being setup by a given
+	# initializer.  Passes through +method_missing+ calls to
+	# to 'nil' item version, using the same initializer.
+	class FlexibleArray
+	  def initialize(hash, initializer)
+		@hash, @initializer = hash, initializer
+	  end
+
+	  def method_missing sym, *args
+		@nil_item = @initializer.call(nil) if @nil_item.nil?
+		@nil_item.send sym, *args
+	  end
+
+	  def [](index)
+		return @hash[index] if @hash.include? index
+		@hash[index] = @initializer.call(index)
+		@hash[index]
+	  end
+
+	  def []=(index, value)
+		@hash[index] = value
+	  end
+	end
+
 	#   This method is called every time the constructor created by
 	# +link_item_class+ is called.
 	#   It receives the class of the field type to be created, the name
@@ -84,28 +111,21 @@ class SwiftestScreen
 	#   Optionally, a block can be supplied which will be evaluated in
 	# the context of a +LinkItemHelperDescriptor+, itself being a
 	# +ScreenDescriptor+.  This may specify subobjects, or a disambiguator.
-	def link_item_class_constructor klass, field_name, selector, &helper
-	  target = klass.new(@screen, selector)
-	  LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
+	def link_item_class_constructor klass, field_name, selector, array=false, &helper
+	  @screen.instance_variable_set "@#{field_name}", if not array
+		target = klass.new(@screen, selector)
+		LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
+		target
+	  else
+		FlexibleArray.new({}, Proc.new {|index|
+		  target = klass.new(@screen, selector, index)
+		  LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
+		  target
+		})
+	  end
 
-	  @screen.instance_variable_set "@#{field_name}", target
 	  @metaklass.send :define_method, field_name do 
 		instance_variable_get("@#{field_name}")
-	  end
-	end
-
-	# Proxy for +JQueryAccessibleField+ which sends the call
-	# on to the underlying implementation, specifying the correctly
-	# obtained element using its obtainer.
-	class IndexProxy
-	  def initialize(target, obtainer, index)
-		@target, @obtainer, @index = target, obtainer, index
-	  end
-
-	  def method_missing(sym, *args, &block)
-		# Call the implementation of the requested method, specifying
-		# the element to be the one obtained with our index.
-		@target.send "impl_#{sym}", @obtainer.call(@index), *args, &block
 	  end
 	end
 
@@ -115,48 +135,26 @@ class SwiftestScreen
 	# define the getters/setters, and use obtain_function to provide
 	# the non-implementation versions.
 	class JQueryAccessibleField < SwiftestScreen
-	  def initialize(screen, selector, &disambiguator)
-		@screen, @selector, @disambiguator = screen, selector, disambiguator
+	  def initialize(screen, selector, index=nil, &disambiguator)
+		@screen, @selector, @index, @disambiguator = screen, selector, index, disambiguator
 	  end
 
 	  def [](index)
-		IndexProxy.new(self, method(:obtain), index)
+		raise "I wasn't declared as an array!"
 	  end
 
-	  # impl_* methods should use their element, always. If they don't
-	  # (i.e. because you're invoking another method on JQAF), you're
-	  # doing it wrong, because you should only ever invoke other impl_
-	  # methods which *take* element.
-	  #   Otherwise you're throwing it away, and that is contrary to
-	  # the whole point.
-	  #   This (above) is the general method to see if you're going about
-	  # something the right way; hence the ugliness with +impl_disabled=+
-	  # using send to give +impl_enabled=+ two arguments.
+	  def length; obtain.length; end
+	  def found?; obtain.length > 0; end
 
-	  def impl_length(element); element.length; end
-	  def impl_found?(element); element.length > 0; end
-
-	  def impl_blur(element); element.blur; end
-	  def impl_enabled?(element); !element.attr("disabled"); end
-	  def impl_enabled=(element, val); element.attr("disabled", !val); end
-	  def impl_disabled?(element); !impl_enabled?(element); end
-	  def impl_disabled=(element, val); send(:impl_enabled=, element, !val); end
-	  def impl_text(element); element.text; end
-
-	  # Creates functions which call their impl_ variants with
-	  # a plain obtained element.
-	  def self.obtain_function *names
-		names.each do |name|
-		  define_method(name) do |*args|
-			send("impl_#{name}", obtain, *args)
-		  end
-		end
-	  end
-
-	  obtain_function :length, :found?
-	  obtain_function :blur, :enabled?, :enabled=, :disabled?, :disabled=, :text
+	  def blur; obtain.blur; end
+	  def enabled?; !obtain.attr("disabled"); end
+	  def enabled=(val); obtain.attr("disabled", !val); end
+	  def disabled?; !enabled?(obtain); end
+	  def disabled=(val); enabled = !val; end
+	  def text; obtain.text; end
 
 	  attr_accessor :disambiguator
+	  attr_accessor :index
 
 	  protected
 	  def element_locate(selector)
@@ -166,42 +164,30 @@ class SwiftestScreen
 	  private
 	  def obtain(index=nil)
 		loc = @screen.locate(@selector, &@disambiguator)
-		return loc unless index
+		return loc unless @index
 
-		puts "INDEX time: #{index}"
-
-		length = loc.length
-		raise ElementNotFoundError, "index #{index} >= length #{length}" if index >= length
-		loc.eq(index)
+		loc.eq(@index)
 	  end
 	end
 	
 	class TextField < JQueryAccessibleField
-	  def impl_value(element); element.val; end 
-	  def impl_value=(element, new_val); element.val(new_val).change; end
-
-	  obtain_function :value, :value=
+	  def value; obtain.val; end 
+	  def value=(new_val); obtain.val(new_val).change; end
 	end
 
 	class CheckBox < JQueryAccessibleField
-	  def impl_checked?(element); element.attr('checked'); end
-	  def impl_checked=(element, new_val); element.attr('checked', new_val).change; end
-
-	  obtain_function :checked?, :checked=
+	  def checked?; obtain.attr('checked'); end
+	  def checked=(new_val); obtain.attr('checked', new_val).change; end
 	end
 
 	class Button < JQueryAccessibleField
-	  def impl_click(element); element.click; end
-
-	  obtain_function :click
+	  def click; obtain.click; end
 	end
 
 	class SelectBox < JQueryAccessibleField
 	  # Glorified TextField?
-	  def impl_value(element); element.val; end
-	  def impl_value=(element, new_val); element.val(new_val).change; end
-
-	  obtain_function :value, :value=
+	  def value; obtain.val; end
+	  def value=(new_val); obtain.val(new_val).change; end
 	end
 
 	link_item_class :item, JQueryAccessibleField
@@ -219,10 +205,10 @@ class SwiftestScreen
 	  dialog_screen = SwiftestDialogScreen.new(description)
 	  DialogDescriptor.new(dialog_screen).instance_eval &block
 
+	  @screen.instance_variable_set "@#{sym}", dialog_screen
 	  @metaklass.send :define_method, sym do
 		instance_variable_get("@#{sym}")
 	  end
-	  @screen.instance_variable_set "@#{sym}", dialog_screen
 
 	  SwiftestScreen.add_screen(dialog_screen)
 	end
