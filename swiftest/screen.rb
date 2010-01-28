@@ -35,6 +35,13 @@ class SwiftestScreen
 	  @metaklass.send :define_method, :current?, &code
 	end
 
+	# Just defines a function on the resulting object.  Uses
+	# +define_function+, hence the resulting method unfortunately
+	# can't take blocks.
+	def method sym, &code
+	  @metaklass.send :define_method, sym, &code
+	end
+
 	#   I had disagreements with naming all the parameters and block
 	# params 'sym' and 'nsym' (and so on) here, so I've tried to make
 	# them more explanatory.
@@ -101,6 +108,14 @@ class SwiftestScreen
 	  def []=(index, value)
 		@hash[index] = value
 	  end
+
+	  def each
+		0.upto(self.length - 1) do |index|
+		  yield self[index]
+		end
+	  end
+
+	  include Enumerable
 	end
 
 	#   This method is called every time the constructor created by
@@ -129,6 +144,22 @@ class SwiftestScreen
 	  end
 	end
 
+	# Looks like a hash while letting users get and set
+	# attributes of a JQueryAccessibleField.
+	class JQueryAttrs
+	  def initialize(obtainer)
+		@obtainer = obtainer
+	  end
+
+	  def [](attr)
+		@obtainer.call.attr(attr)
+	  end
+
+	  def []=(attr, val)
+		@obtainer.call.attr(attr, val)
+	  end
+	end
+
 	#   Base class for any field accessible by jQuery.  Stores
 	# the screen, selector and disambiguator.  Field types being
 	# used with +link_item_class+ should inherit this class,
@@ -147,11 +178,13 @@ class SwiftestScreen
 	  def found?; obtain.length > 0; end
 
 	  def blur; obtain.blur; end
-	  def enabled?; !obtain.attr("disabled"); end
-	  def enabled=(val); obtain.attr("disabled", !val); end
-	  def disabled?; !enabled?(obtain); end
-	  def disabled=(val); enabled = !val; end
+	  def enabled?; !disabled?; end
+	  def enabled=(val); disabled = !val; end
+	  def disabled?; attrs["disabled"]; end
+	  def disabled=(val); attrs["disabled"] = val; end
 	  def text; obtain.text; end
+
+	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
 
 	  attr_accessor :disambiguator
 	  attr_accessor :index
@@ -162,7 +195,7 @@ class SwiftestScreen
 	  end
 
 	  private
-	  def obtain(index=nil)
+	  def obtain
 		loc = @screen.locate(@selector, &@disambiguator)
 		return loc unless @index
 
