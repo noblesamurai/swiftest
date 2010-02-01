@@ -344,7 +344,7 @@ class SwiftestScreen
   # instead.
   def element_locate(selector, base=nil)
 	if base
-	  top.jQuery(base).find(selector)
+	  base.jQuery.find(selector)
 	else
 	  top.jQuery(selector)
 	end
