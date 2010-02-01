@@ -235,7 +235,10 @@ class SwiftestScreen
 	  def value=(new_val); obtain.text(new_val).change; end
 	end
 
+	# just aliases
 	link_item_class :item, JQueryAccessibleField
+	link_item_class :container, JQueryAccessibleField
+
 	link_item_class :text_field, TextField
 	link_item_class :check_box, CheckBox
 	link_item_class :button, Button
