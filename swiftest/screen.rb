@@ -127,21 +127,23 @@ class SwiftestScreen
 	# the context of a +LinkItemHelperDescriptor+, itself being a
 	# +ScreenDescriptor+.  This may specify subobjects, or a disambiguator.
 	def link_item_class_constructor klass, field_name, selector, array=false, &helper
-	  @screen.instance_variable_set "@#{field_name}", if not array
+	  if not array
 		target = klass.new(@screen, selector)
 		LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
-		target
 	  else
-		FlexibleArray.new({}, Proc.new {|index|
+		target = FlexibleArray.new({}, Proc.new {|index|
 		  target = klass.new(@screen, selector, index)
 		  LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
 		  target
 		})
 	  end
 
+	  @screen.instance_variable_set "@#{field_name}", target
 	  @metaklass.send :define_method, field_name do 
 		instance_variable_get("@#{field_name}")
 	  end
+
+	  @screen.instance_variable_get("@#{field_name}")
 	end
 
 	# Looks like a hash while letting users get and set
@@ -168,6 +170,7 @@ class SwiftestScreen
 	class JQueryAccessibleField < SwiftestScreen
 	  def initialize(screen, selector, index=nil, &disambiguator)
 		@screen, @selector, @index, @disambiguator = screen, selector, index, disambiguator
+		@base_call = nil
 	  end
 
 	  def [](index)
@@ -186,17 +189,21 @@ class SwiftestScreen
 
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
 
+	  attr_accessor :base_call
 	  attr_accessor :disambiguator
 	  attr_accessor :index
 
 	  protected
-	  def element_locate(selector)
+	  def element_locate(selector, base=nil)
+		raise "JQueryAccessibleField#element_locate given non-nil base" unless base.nil?
 		obtain.find(selector)
 	  end
 
 	  private
 	  def obtain
-		loc = @screen.locate(@selector, &@disambiguator)
+		loc = @screen.locate(@selector,
+							 @base_call && @screen.instance_eval(&@base_call),
+							 &@disambiguator)
 		return loc unless @index
 
 		loc.eq(@index)
@@ -218,9 +225,14 @@ class SwiftestScreen
 	end
 
 	class SelectBox < JQueryAccessibleField
-	  # Glorified TextField?
+	  # Glorified TextField, only not?
 	  def value; obtain.val; end
 	  def value=(new_val); obtain.val(new_val).change; end
+	end
+
+	class Textarea < JQueryAccessibleField
+	  def value; obtain.text; end
+	  def value=(new_val); obtain.text(new_val).change; end
 	end
 
 	link_item_class :item, JQueryAccessibleField
@@ -228,6 +240,26 @@ class SwiftestScreen
 	link_item_class :check_box, CheckBox
 	link_item_class :button, Button
 	link_item_class :select_box, SelectBox
+	link_item_class :textarea, Textarea
+
+	def resolve_base base_call, &block
+	  ResolveBaseDescriptor.new(@screen, base_call).instance_eval &block
+	end
+
+	class ResolveBaseDescriptor
+	  def initialize(screen, base_call)
+		@screen, @base_call = screen, base_call
+		@real_descriptor = ScreenDescriptor.new(@screen)
+	  end
+	  
+	  def method_missing sym, *args, &block
+		result = @real_descriptor.send(sym, *args, &block)
+		if result.respond_to? :base_call=
+		  result.base_call = @base_call
+		end
+		result
+	  end
+	end
 
 	#   Defines a dialog by the name provided (sym).
 	#   Dialogs' contents are defined just like screens - they're
@@ -244,6 +276,8 @@ class SwiftestScreen
 	  end
 
 	  SwiftestScreen.add_screen(dialog_screen)
+
+	  @screen.instance_variable_get "@#{sym}"
 	end
   end
 
@@ -283,11 +317,11 @@ class SwiftestScreen
   # locate runs this screen's element locator, then uses
   # the given disambiguator (if any) to narrow down which
   # item is returned.
-  def locate(selector, &disambiguator)
-	found = element_locate(selector)
+  def locate(selector, base=nil, &disambiguator)
+	found = element_locate(selector, base)
 
 	len = found.length
-	raise ElementNotFoundError, "Locator found nothing for \"#{selector}\"" if len == 0
+	raise ElementNotFoundError, "Locator found nothing for \"#{selector}\"#{base && ", with base #{base.inspect}"}" if len == 0
 
 	if disambiguator
 	  # Optimised for minimum number of calls into JavaScript.
@@ -305,8 +339,12 @@ class SwiftestScreen
   # selector.  This is overridable so that, e.g., dialogs can
   # evaluate that selector within the context of the dialog 
   # instead.
-  def element_locate(selector)
-	top.jQuery(selector)
+  def element_locate(selector, base=nil)
+	if base
+	  top.jQuery(base).find(selector)
+	else
+	  top.jQuery(selector)
+	end
   end
 
   def inspect
@@ -330,7 +368,10 @@ end
 # element locating mechanism starts from the dialog's document,
 # instead of the very top level.
 class SwiftestDialogScreen < SwiftestScreen
-  def element_locate(selector)
+  # XXX(arlen): this looks like it could be refactored into
+  # SwiftestScreen#element_locate - maybe using resolve_base
+  def element_locate(selector, base=nil)
+	raise "SwiftestDialogScreen#element_locate given non-nil base" unless base.nil?
 	top.jQuery(document).find(selector)
   end
 end
