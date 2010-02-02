@@ -179,6 +179,7 @@ class SwiftestScreen
 
 	  def length; obtain.length; end
 	  def found?; obtain.length > 0; end
+	  def visible?; obtain.is(":visible"); end
 
 	  def blur; obtain.blur; end
 	  def enabled?; !disabled?; end
@@ -225,9 +226,12 @@ class SwiftestScreen
 	end
 
 	class SelectBox < JQueryAccessibleField
-	  # Glorified TextField, only not?
 	  def value; obtain.val; end
 	  def value=(new_val); obtain.val(new_val).change; end
+
+	  def choose(val)
+		self.value = obtain.find("option[text='#{val.gsub("'", "\\'")}']").val
+	  end
 	end
 
 	class Textarea < JQueryAccessibleField
