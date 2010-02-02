@@ -95,13 +95,17 @@ class SwiftestScreen
 	  end
 
 	  def method_missing sym, *args
-		@nil_item = @initializer.call(nil) if @nil_item.nil?
+		if @nil_item.nil?
+		  @nil_item = @initializer.call(nil)
+		  @nil_item.base_call = @base_call if @base_call
+		end
 		@nil_item.send sym, *args
 	  end
 
 	  def [](index)
 		return @hash[index] if @hash.include? index
 		@hash[index] = @initializer.call(index)
+		@hash[index].base_call = @base_call if @base_call
 		@hash[index]
 	  end
 
@@ -114,6 +118,8 @@ class SwiftestScreen
 		  yield self[index]
 		end
 	  end
+
+	  attr_accessor :base_call
 
 	  include Enumerable
 	end
@@ -189,6 +195,7 @@ class SwiftestScreen
 	  def text; obtain.text; end
 
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
+	  def top; @screen.top; end
 
 	  attr_accessor :base_call
 	  attr_accessor :disambiguator
@@ -196,8 +203,13 @@ class SwiftestScreen
 
 	  protected
 	  def element_locate(selector, base=nil)
-		raise "JQueryAccessibleField#element_locate given non-nil base" unless base.nil?
-		obtain.find(selector)
+		if base
+		  # Resets back to +base+ - not using our current 'state' (i.e.
+		  # the location isn't at all relative to this JQAF)
+		  base.jQuery.find(selector)
+		else
+		  obtain.find(selector)
+		end
 	  end
 
 	  private
@@ -245,6 +257,21 @@ class SwiftestScreen
 
 	  def html; obtain.html; end
 	  def html=(new_val); obtain.html(new_val).change; end
+
+	  def select_text(text)
+		node = obtain.find(":contains(#{text.inspect}):not(div)").get(0).firstChild
+		node_text = node.nodeValue
+
+		raise "Text #{test.inspect} not found in node contents #{node_text.inspect}" if node_text.index(text).nil?
+
+		range = node.ownerDocument.createRange
+		range.setStart(node, node_text.index(text))
+		range.setEnd(node, node_text.index(text) + text.length)
+
+		sel = top.window.getSelection
+		sel.removeAllRanges
+		sel.addRange(range)
+	  end
 	end
 
 	# just aliases
