@@ -32,7 +32,7 @@ $(function() {
 
 	switch (typeof(o)) {
 	case "string":
-	  return '"' + o.replace(/"/g, "\\\"").replace(/\\/g, "\\\\") + '"';
+	  return '"' + o.replace(/\\/g, "\\\\").replace(/"/g, "\\\"") + '"';
 
 	case "number":
 	  return "" + o;
