@@ -234,9 +234,17 @@ class SwiftestScreen
 	  end
 	end
 
-	class Textarea < JQueryAccessibleField
+	class TextArea < JQueryAccessibleField
 	  def value; obtain.text; end
 	  def value=(new_val); obtain.text(new_val).change; end
+	end
+
+	class HTMLArea < JQueryAccessibleField
+	  def value; obtain.text; end
+	  def value=(new_val); obtain.text(new_val).change; end
+
+	  def html; obtain.html; end
+	  def html=(new_val); obtain.html(new_val).change; end
 	end
 
 	# just aliases
@@ -247,7 +255,8 @@ class SwiftestScreen
 	link_item_class :check_box, CheckBox
 	link_item_class :button, Button
 	link_item_class :select_box, SelectBox
-	link_item_class :textarea, Textarea
+	link_item_class :text_area, TextArea
+	link_item_class :html_area, HTMLArea
 
 	def resolve_base base_call, &block
 	  ResolveBaseDescriptor.new(@screen, base_call).instance_eval &block
