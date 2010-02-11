@@ -1,11 +1,11 @@
 # swiftest
-##### <span style="color: #333">a platform for automating HTML AIR applications</span> 
+##### <span style="color: #333">a platform for automating HTML/JS AIR applications</span> 
 
 ## introduction
 
 _swiftest_ is a platform written in Ruby for automating Adobe AIR applications which use HTML and JavaScript for their UI. Its primary use case is in **testing**.
 
-_swiftest_ is **not** a testing framework. One uses _swiftest_ **to provide the connection** to your AIR application, which you then instrument in your tests. I suggest [Cucumber](http://cukes.info) for writing your tests.
+_swiftest_ is **not** a testing framework. You use _swiftest_ **to provide the connection** to your AIR application, which you then instrument in your tests. I suggest [Cucumber](http://cukes.info) for writing your tests.
 
 In addition to the ability to make arbitrary JavaScript calls without encountering the dread sandbox violation warning, _swiftest_ provides a set of methods and classes which ease in describing and abstracting away the details of the UI of your program, allowing you to automate and test it with ease.
 
@@ -88,6 +88,10 @@ Internally, their elements are selected using jQuery selectors and arbitrary cod
     @screen.show_message.click
     @screen.message.value.should == "Just kidding!"
 
+### further abstraction
+
+Screens should only be considered as building blocks for greater levels of abstraction particular to your application. Liberal use of metaprogramming and common-sense can help create an environment which makes your Cucumber clauses (see below) even easier to write and more modular, which translates to tests being more portable and easily written.
+
 ## Cucumber
 
 [Cucumber](http://cukes.info) lets you write plain-English tests for BDD which make sense. Check it out.
@@ -154,10 +158,94 @@ In this case, the capture group in "the user clicks ..." matches perfectly the T
 
 Hopefully this is self-explanatory. The first capture group again matches the Transform, and we get a real field out of `text_field`, whose value is compared to the plain text capture `value` with an RSpec assert (which comes with Cucumber).
 
+## tips
+
+In no particular order.
+
+### writing your own type of screens
+
+Do it! It's easy with a bit of instance_eval magic.
+
+Let's say you have a concept in your application called 'utilities', and the user can switch between utilities by clicking buttons on the main window.  Those buttons (eventually) cause the utility to be shown in an iframe.  Here's how you could model this interaction:
+
+    UtilityBase = lambda { top.jQuery("iframe#utility").get(0).contentWindow }
+
+    def define_utility(utility_name, &block)
+	  screen = SwiftestScreen.describe_screen(utility_name) do
+	    def in_frame(&block)
+		  resolve_base(UtilityBase, &block)
+		end
+
+		current_when do
+		  top.jQuery("iframe#utility").is(":visible") && 
+		    top.jQuery("iframe#utility").attrs["src"] == utility_name.gsub(" ", "_").downcase + ".html"
+	    end
+
+		instance_eval &block
+	  end
+
+	  Kernel.const_set(utility_name.gsub(" ", "") + "UtilityScreen", screen)
+	end
+
+This creates a helper function, `define_utility`, which given a name like 'Finance Calculator', creates a screen object called `FinanceCalculatorUtilityScreen`.
+
+It defines a helper method called `in_frame`, which uses the _swiftest_ `resolve_base` to cause all screen objects created in its block to resolve from the base returned by the lambda given to it - in this case, `UtilityBase`, which gets the contentWindow out from an iframe with the id 'utility' on the top-level. This lambda gets evaluated at runtime.
+
+Since all utilities will be current based on a similar condition, we can also put that here if we like - in this case, they're current when the iframe is visible, and its 'src' HTML attribute is - in Finance Calculator's case - finance_calculator.html.
+
+Finally, it evaluates the block given, just like it was passed to `describe_screen`.
+
+Now we can define our utility like this:
+
+    define_utility "Finance Calculator" do
+	  in_frame {
+		container(:statistics, "div#statistics") {
+		  button :add, "button#add"
+		  button :avg, "button#avg"
+		  button :mean, "button#mean"
+		  button :clear, "button#clear"
+		}
+
+        0.upto(9) {|n| button "number_#{n}".to_sym, "button#num-#{n}"}
+		button :add, "button#add"
+		button :subtract, "button#subtract"
+		button :equals, "button#equals"
+
+		button :toggle_stats, "button#toggle_stats"
+
+		text_field :result, "input#result[type='text']"
+	  }
+	end
+
+We now can describe just what makes our utility unique. `in_frame` - the helper we defined earlier - causes the objects to be resolved in the context of the iframe.
+
+Here's some code which could now be in a Cucumber step definition:
+
+    switch_screen FinanceCalculatorUtilityScreen
+	@screen.number_9.click
+	@screen.add.click
+	@screen.number_5.click
+	@screen.equals.click
+
+	@screen.toggle_stats.click
+	@screen.statistics.visible?.should == true
+    
+	@screen.statistics.add.click
+
+	@screen.number_4.click
+	@screen.statistics.add.click
+
+	@screen.statistics.avg.click
+
+    @screen.result.value.should == "9"
+    # I can do maths?
+
+Toy around with it, and use more evals and blocks.
+
 ## contributors
 
  - [Arlen Cuss](http://github.com/celtic)
- - [You?](http://github.com/celtic/swiftest/fork) (click to fork)
+ - You?
 
 ## license
 
