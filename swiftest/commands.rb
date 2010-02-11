@@ -54,6 +54,9 @@ module SwiftestCommands
 	def method_missing sym, *args
 	  # Send our request (function/object name, arguments) and state 
 	  # from last time.
+	  $swiftest_calls ||= Hash.new(0)
+	  $swiftest_calls[sym] += 1
+	  
 	  result, state = @swiftest.send_command("state-fncall", @statefncall, sym, *args)
 
 	  # Basic types don't need proxying, since they're not going to

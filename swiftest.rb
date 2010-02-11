@@ -208,6 +208,8 @@ class Swiftest
 	File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
 
 	@@storedState.delete @hash
+
+	p $swiftest_calls
   end
 
   def started?
