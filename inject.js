@@ -170,10 +170,15 @@ $(function() {
 	// If we were given no arguments and the target 'function'
 	// appears not to be a function at all, just use it like an
 	// object.
+	
 	if (typeof target[fn] != "function" && args.length == 0) {
 	  return target[fn];
+	} else if (typeof target[fn] == "function" && args.length == 0
+		&& ("" + target[fn]).match(/^\[class .*\]$/)
+		&& target[fn].constructor == target[fn].constructor.constructor) {
+	  // Looks like an ActionScript class.
+	  return target[fn];
 	} else {
-	  // Otherwise, we'll call the function with given arguments.
 	  return target[fn].apply(target, args);
 	}
   }
