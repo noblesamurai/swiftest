@@ -83,6 +83,14 @@ class SwiftestScreen
 	  def disambiguate &disambiguator
 		@screen.disambiguator = disambiguator
 	  end
+
+	  def switch_to(where, &how)
+		@screen.switch_to[where] = how
+	  end
+
+	  def visible_when(&w)
+		@screen.visible_call = w
+	  end
 	end
 
 	# Exposes a hash as an array whose bounds can be set fairly
@@ -176,7 +184,9 @@ class SwiftestScreen
 	class JQueryAccessibleField < SwiftestScreen
 	  def initialize(screen, selector, index=nil, &disambiguator)
 		@screen, @selector, @index, @disambiguator = screen, selector, index, disambiguator
-		@base_call = nil
+		@switch_to, @base_call = {}, nil
+
+		@visible_call = nil
 	  end
 
 	  def [](index)
@@ -185,7 +195,10 @@ class SwiftestScreen
 
 	  def length; obtain.length; end
 	  def found?; obtain.length > 0; end
-	  def visible?; obtain.is(":visible"); end
+	  def visible?
+		@visible_call ?
+		  @screen.instance_eval(&@visible_call) : obtain.is(":visible")
+	  end
 
 	  def blur; obtain.blur; end
 	  def enabled?; !disabled?; end
@@ -198,8 +211,12 @@ class SwiftestScreen
 	  def top; @screen.top; end
 
 	  attr_accessor :base_call
-	  attr_accessor :disambiguator
 	  attr_accessor :index
+	  attr_accessor :disambiguator
+
+	  attr_accessor :switch_to
+
+	  attr_accessor :visible_call
 
 	  protected
 	  def element_locate(selector, base=nil)
@@ -294,12 +311,10 @@ class SwiftestScreen
 		@screen, @base_call = screen, base_call
 		@real_descriptor = ScreenDescriptor.new(@screen)
 	  end
-	  
+
 	  def method_missing sym, *args, &block
 		result = @real_descriptor.send(sym, *args, &block)
-		if result.respond_to? :base_call=
-		  result.base_call = @base_call
-		end
+		result.base_call = @base_call if result.respond_to? :base_call=
 		result
 	  end
 	end
