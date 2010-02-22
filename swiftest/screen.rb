@@ -293,7 +293,8 @@ class SwiftestScreen
 
 	# just aliases
 	link_item_class :item, JQueryAccessibleField
-	link_item_class :container, JQueryAccessibleField
+	link_item_class :dialog, JQueryAccessibleField
+	link_item_class :subscreen, JQueryAccessibleField
 
 	link_item_class :text_field, TextField
 	link_item_class :check_box, CheckBox
@@ -323,30 +324,30 @@ class SwiftestScreen
 	  end
 	end
 
-	#   Defines a dialog by the name provided (sym).
-	#   Dialogs' contents are defined just like screens - they're
+	#   Defines a window by the name provided (sym).
+	#   Windows' contents are defined just like screens - they're
 	# actually subclasses (both the Screen class and Descriptor),
 	# so they share all the same features, as well as some extra
 	# functionality (indicating how to open them, etc.).
-	def dialog sym, name, &block
-	  dialog_screen = SwiftestDialogScreen.new(name)
-	  DialogDescriptor.new(dialog_screen).instance_eval &block
+	def window sym, name, &block
+	  window_screen = SwiftestWindowScreen.new(name)
+	  WindowDescriptor.new(window_screen).instance_eval &block
 
-	  @screen.instance_variable_set "@#{sym}", dialog_screen
+	  @screen.instance_variable_set "@#{sym}", window_screen
 	  @metaklass.send :define_method, sym do
 		instance_variable_get("@#{sym}")
 	  end
 
-	  SwiftestScreen.add_screen(dialog_screen)
+	  SwiftestScreen.add_screen(window_screen)
 
 	  @screen.instance_variable_get "@#{sym}"
 	end
   end
 
-  # Adds two extra methods for use when describing a dialog;
-  # one which describes how to show the dialog, and one for
+  # Adds two extra methods for use when describing a window;
+  # one which describes how to show the window, and one for
   # describing how to get the document object out of it.
-  class DialogDescriptor < ScreenDescriptor
+  class WindowDescriptor < ScreenDescriptor
 	def show &block
 	  @metaklass.send :define_method, :show, &block
 	end
@@ -398,8 +399,8 @@ class SwiftestScreen
   end
 
   # Screens know how to locate objects in themselves given a 
-  # selector.  This is overridable so that, e.g., dialogs can
-  # evaluate that selector within the context of the dialog 
+  # selector.  This is overridable so that, e.g., windows can
+  # evaluate that selector within the context of the window 
   # instead.
   def element_locate(selector, base=nil)
 	if base
@@ -426,14 +427,14 @@ class SwiftestScreen
   end
 end
 
-# Dialog screens only differ from screens in that their
-# element locating mechanism starts from the dialog's document,
+# Window screens only differ from screens in that their
+# element locating mechanism starts from the window's document,
 # instead of the very top level.
-class SwiftestDialogScreen < SwiftestScreen
+class SwiftestWindowScreen < SwiftestScreen
   # XXX(arlen): this looks like it could be refactored into
   # SwiftestScreen#element_locate - maybe using resolve_base
   def element_locate(selector, base=nil)
-	raise "SwiftestDialogScreen#element_locate given non-nil base" unless base.nil?
+	raise "SwiftestWindowScreen#element_locate given non-nil base" unless base.nil?
 	top.jQuery(document).find(selector)
   end
 end
