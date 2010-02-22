@@ -100,7 +100,10 @@ class SwiftestScreen
 	class FlexibleArray
 	  def initialize(hash, initializer)
 		@hash, @initializer = hash, initializer
+		@klass_description = "#{self[0].klass_description} array"
 	  end
+
+	  attr_reader :klass_description
 
 	  def method_missing sym, *args
 		if @nil_item.nil?
@@ -182,6 +185,8 @@ class SwiftestScreen
 	# define the getters/setters, and use obtain_function to provide
 	# the non-implementation versions.
 	class JQueryAccessibleField < SwiftestScreen
+	  @klass_description = "generic field"
+
 	  def initialize(screen, selector, index=nil, &disambiguator)
 		@screen, @selector, @index, @disambiguator = screen, selector, index, disambiguator
 		@switch_to, @base_call = {}, nil
@@ -239,22 +244,33 @@ class SwiftestScreen
 		loc.eq(@index)
 	  end
 	end
+
+	class Dialog < JQueryAccessibleField; @klass_description = "dialog"; end
+	class Subscreen < JQueryAccessibleField; @klass_description = "subscreen"; end
 	
 	class TextField < JQueryAccessibleField
+	  @klass_description = "text field"
+
 	  def value; obtain.val; end 
 	  def value=(new_val); obtain.val(new_val).change; end
 	end
 
 	class CheckBox < JQueryAccessibleField
+	  @klass_description = "check box"
+
 	  def checked?; obtain.attr('checked'); end
 	  def checked=(new_val); obtain.attr('checked', new_val).change; end
 	end
 
 	class Button < JQueryAccessibleField
+	  @klass_description = "button"
+
 	  def click; obtain.click; end
 	end
 
 	class SelectBox < JQueryAccessibleField
+	  @klass_description = "select box"
+
 	  def value; obtain.val; end
 	  def value=(new_val); obtain.val(new_val).change; end
 
@@ -264,11 +280,15 @@ class SwiftestScreen
 	end
 
 	class TextArea < JQueryAccessibleField
+	  @klass_description = "text area"
+
 	  def value; obtain.text; end
 	  def value=(new_val); obtain.text(new_val).change; end
 	end
 
 	class HTMLArea < JQueryAccessibleField
+	  @klass_description = "rich-text editor"
+
 	  def value; obtain.text; end
 	  def value=(new_val); obtain.text(new_val).change; end
 
@@ -291,10 +311,9 @@ class SwiftestScreen
 	  end
 	end
 
-	# just aliases
 	link_item_class :item, JQueryAccessibleField
-	link_item_class :dialog, JQueryAccessibleField
-	link_item_class :subscreen, JQueryAccessibleField
+	link_item_class :dialog, Dialog
+	link_item_class :subscreen, Subscreen
 
 	link_item_class :text_field, TextField
 	link_item_class :check_box, CheckBox
@@ -414,6 +433,10 @@ class SwiftestScreen
 	"<#{self.class.name}: #{@name}>"
   end
 
+  @klass_description = "screen"
+  def self.klass_description; @klass_description; end
+  def klass_description; self.class.klass_description; end
+
   # The 'top' accessor may be used internally - e.g. by
   # current_when's delegate.
   #   It's set by SwiftestEnvironment#init_screens.
@@ -431,6 +454,8 @@ end
 # element locating mechanism starts from the window's document,
 # instead of the very top level.
 class SwiftestWindowScreen < SwiftestScreen
+  @klass_description = "window"
+
   # XXX(arlen): this looks like it could be refactored into
   # SwiftestScreen#element_locate - maybe using resolve_base
   def element_locate(selector, base=nil)
