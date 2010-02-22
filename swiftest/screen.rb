@@ -302,6 +302,10 @@ class SwiftestScreen
 	link_item_class :text_area, TextArea
 	link_item_class :html_area, HTMLArea
 
+	def describe description
+	  @screen.description = description
+	end
+
 	def resolve_base base_call, &block
 	  ResolveBaseDescriptor.new(@screen, base_call).instance_eval &block
 	end
@@ -324,8 +328,8 @@ class SwiftestScreen
 	# actually subclasses (both the Screen class and Descriptor),
 	# so they share all the same features, as well as some extra
 	# functionality (indicating how to open them, etc.).
-	def dialog sym, description, &block
-	  dialog_screen = SwiftestDialogScreen.new(description)
+	def dialog sym, name, &block
+	  dialog_screen = SwiftestDialogScreen.new(name)
 	  DialogDescriptor.new(dialog_screen).instance_eval &block
 
 	  @screen.instance_variable_set "@#{sym}", dialog_screen
@@ -361,8 +365,8 @@ class SwiftestScreen
 
   # Starts describing a new screen.  The actual description process
   # is handled by ScreenDescriptor.
-  def self.describe_screen(description, &block)
-	screen = SwiftestScreen.new(description)
+  def self.describe_screen(name, &block)
+	screen = SwiftestScreen.new(name)
 	ScreenDescriptor.new(screen).instance_eval &block
 
 	add_screen(screen)
@@ -406,19 +410,19 @@ class SwiftestScreen
   end
 
   def inspect
-	"<#{self.class.name}: #{@description}>"
+	"<#{self.class.name}: #{@name}>"
   end
 
   # The 'top' accessor may be used internally - e.g. by
   # current_when's delegate.
   #   It's set by SwiftestEnvironment#init_screens.
   attr_accessor :top
-  attr_accessor :description
+  attr_accessor :name, :description
 
   protected :initialize
 
-  def initialize(description)
-	@description = description
+  def initialize(name)
+	@name = name
   end
 end
 
