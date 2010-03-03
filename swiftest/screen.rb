@@ -100,7 +100,7 @@ class SwiftestScreen
 	class FlexibleArray
 	  def initialize(hash, initializer)
 		@hash, @initializer = hash, initializer
-		@klass_description = "#{self[0].klass_description} array"
+		@klass_description = "#{initializer.call(nil).klass_description} array"
 	  end
 
 	  attr_reader :klass_description
