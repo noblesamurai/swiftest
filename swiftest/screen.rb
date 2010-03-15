@@ -215,6 +215,8 @@ class SwiftestScreen
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
 	  def top; @screen.top; end
 
+	  def each; yield self; end
+
 	  attr_accessor :base_call
 	  attr_accessor :index
 	  attr_accessor :disambiguator
