@@ -109,6 +109,10 @@ class SwiftestScreen
 		if @nil_item.nil?
 		  @nil_item = @initializer.call(nil)
 		  @nil_item.base_call = @base_call if @base_call
+
+		  # For the sake of lists with possibly zero items,
+		  # allow the locate call to return nil.
+		  @nil_item.allow_nil = true
 		end
 		@nil_item.send sym, *args
 	  end
@@ -189,7 +193,7 @@ class SwiftestScreen
 
 	  def initialize(screen, selector, index=nil, &disambiguator)
 		@screen, @selector, @index, @disambiguator = screen, selector, index, disambiguator
-		@switch_to, @base_call = {}, nil
+		@switch_to, @base_call, @allow_nil = {}, nil, false
 
 		@visible_call = nil
 	  end
@@ -218,6 +222,7 @@ class SwiftestScreen
 	  def each; yield self; end
 
 	  attr_accessor :base_call
+	  attr_accessor :allow_nil
 	  attr_accessor :index
 	  attr_accessor :disambiguator
 
@@ -240,6 +245,7 @@ class SwiftestScreen
 	  def obtain
 		loc = @screen.locate(@selector,
 							 @base_call && @screen.instance_eval(&@base_call),
+							 @allow_nil,
 							 &@disambiguator)
 		return loc unless @index
 
@@ -401,11 +407,11 @@ class SwiftestScreen
   # locate runs this screen's element locator, then uses
   # the given disambiguator (if any) to narrow down which
   # item is returned.
-  def locate(selector, base=nil, &disambiguator)
+  def locate(selector, base=nil, allow_nil=false, &disambiguator)
 	found = element_locate(selector, base)
 
 	len = found.length
-	raise ElementNotFoundError, "Locator found nothing for \"#{selector}\"#{base && ", with base #{base.inspect}"}" if len == 0
+	raise ElementNotFoundError, "Locator found nothing for \"#{selector}\"#{base && ", with base #{base.inspect}"}" if len == 0 and not allow_nil
 
 	if disambiguator
 	  # Optimised for minimum number of calls into JavaScript.
