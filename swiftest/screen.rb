@@ -215,6 +215,7 @@ class SwiftestScreen
 	  def disabled?; attrs["disabled"]; end
 	  def disabled=(val); attrs["disabled"] = val; end
 	  def text; obtain.text; end
+	  def click; obtain.click; end
 
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
 	  def top; @screen.top; end
@@ -272,8 +273,6 @@ class SwiftestScreen
 
 	class Button < JQueryAccessibleField
 	  @klass_description = "button"
-
-	  def click; obtain.click; end
 	end
 
 	class SelectBox < JQueryAccessibleField
