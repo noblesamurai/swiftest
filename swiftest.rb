@@ -29,6 +29,8 @@ class Swiftest
   class JavascriptError < StandardError; end
   include SwiftestCommands
 
+  SELF_LAUNCH = true
+
   def self.newOrRecover(*args)
 	@@storedState ||= {}
 	return @@storedState[args.hash] if @@storedState.keys.include? args.hash
@@ -83,45 +85,47 @@ class Swiftest
 	end
 
 	# Open up the modified descriptor with ADL.
+	if SELF_LAUNCH
+	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl #@new_descriptor_file #@relative_dir")
+	  @started = true
+	  at_exit do stop end
 
-	@pid, @stdin, @stdout, @stderr = Open4.popen4("adl #@new_descriptor_file #@relative_dir")
-	@started = true
-	at_exit do stop end
+	  @stdlog = ''
 
-	@stdlog = ''
+	  # Start a thread to pipe through output from adl
+	  @reader_thread = Thread.start do 
+		begin
+		  data_ok = true
 
-	# Start a thread to pipe through output from adl
-	@reader_thread = Thread.start do 
-	  begin
-		data_ok = true
-
-		while data_ok
-		  triggered = IO.select([@stdout, @stderr])
-		  break unless triggered and triggered[0]
-		  triggered[0].each do |io|
-			data = io.readline	# rarely not line based, so this should be ok.
-			if data
-			  if ENV['SWIFTEST_LOGGING'] == 'realtime'
-				puts data
+		  while data_ok
+			triggered = IO.select([@stdout, @stderr])
+			break unless triggered and triggered[0]
+			triggered[0].each do |io|
+			  data = io.readline	# rarely not line based, so this should be ok.
+			  if data
+				if ENV['SWIFTEST_LOGGING'] == 'realtime'
+				  puts data
+				else
+				  @stdlog += data
+				end
 			  else
-				@stdlog += data
+				data_ok = false
 			  end
-			else
-			  data_ok = false
 			end
 		  end
+		rescue IOError
+		  STDERR.puts "ioerror in reader thread: #{$!.inspect}"
+		  exit
 		end
-	  rescue IOError
-		STDERR.puts "ioerror in reader thread: #{$!.inspect}"
-		exit
+
+		puts @stdlog if ENV['SWIFTEST_LOGGING'] == 'post'
+
+		stop
 	  end
-
-	  puts @stdlog if ENV['SWIFTEST_LOGGING'] == 'post'
-
-	  stop
 	end
 
 	# Block for the client
+	STDERR.puts "engage!"
 	@client = @server.accept
   end
 
@@ -173,7 +177,7 @@ class Swiftest
 	  success = recv_bool
 	rescue Errno::ECONNRESET => e
 	  STDERR.puts "connection reset!"
-	  exit
+	  exit 250
 	end
 
 	raise JavascriptError, recv_str unless success
