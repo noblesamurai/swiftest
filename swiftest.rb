@@ -111,8 +111,8 @@ class Swiftest
 			end
 		  end
 		end
-	  rescue IOError => e
-		STDERR.puts "ioerror in reader thread: #$!"
+	  rescue IOError
+		STDERR.puts "ioerror in reader thread: #{$!.inspect}"
 		exit
 	  end
 
