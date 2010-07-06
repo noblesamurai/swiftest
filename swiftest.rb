@@ -111,8 +111,9 @@ class Swiftest
 			end
 		  end
 		end
-	  rescue IOError
-		# STDERR.puts "ioerror in reader thread: #$!"
+	  rescue IOError => e
+		STDERR.puts "ioerror in reader thread: #$!"
+		exit
 	  end
 
 	  puts @stdlog if ENV['SWIFTEST_LOGGING'] == 'post'
@@ -168,7 +169,12 @@ class Swiftest
 	end
 	@client.flush
 
-	success = recv_bool
+	begin
+	  success = recv_bool
+	rescue Errno::ECONNRESET => e
+	  STDERR.puts "connection reset!"
+	  exit
+	end
 
 	raise JavascriptError, recv_str unless success
 

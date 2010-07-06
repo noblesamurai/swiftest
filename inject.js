@@ -15,7 +15,7 @@
  * along with Swiftest.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-$(function() {
+var Swiftest = function() {
   var flash = window.runtime.flash;
   var trace = window.runtime.trace;
 
@@ -49,23 +49,13 @@ $(function() {
 		return ret;
 	  } else {
 		// Ordinary object!
-		// HACK(arlen): instead of actually serialising the entire object,
+		// Instead of actually serialising the entire object,
 		// we just return this proxy-ish object instead. Any attempt to access 
 		// properties will hit method_missing, which should then
 		// actually come back to the JavaScript to find the value.
 
 		// ?: we could list the keys later if we wanted to know that client-side
 		return "SwiftestCommands::StateObject.new(:object)";
-
-		/*
-		var ret = "{", first = true;
-		for (var key in o) {
-		  if (first) first = false; else ret += ", ";
-		  ret += ruby_escape(key) + " => " + ruby_escape(o[key]);
-		}
-		ret += "}";
-		return ret;
-		*/
 	  }
 	  break;	// shall not be reached
 	
@@ -81,29 +71,10 @@ $(function() {
 	}
   }
 
-  function redefine_builtins() {
-	top.air.trace("redefining builtins");
-	redefined_builtins = true;
-
-	top.confirm = function(msg) {
-	  top.air.trace("got confirm " + msg);
-
-	  return true;
-	}
-
-	//top.alert = null; /*function(msg) {
-	  //top.air.trace("got alert " + msg);
-	//} */
-  }
-
   var state_fncall_db = [];
-  var redefined_builtins = false;
 
   function process() {
 	var insufficientData = false;
-
-	if (!redefined_builtins)
-	  redefine_builtins();
 
 	expectBuffer = buffer;
 	while (!insufficientData) {
@@ -136,7 +107,8 @@ $(function() {
 		switch (arg_type) {
 		case "s":
 		  // Plain JSON arg.
-		  var result = $.parseJSON(expect_str());
+		  var result = expect_str();
+		  result = $.parseJSON(result);
 		  break;
 		case "b":
 		  // Back reference.
@@ -247,5 +219,8 @@ $(function() {
   });
 
   socket.connect("127.0.0.1", SWIFTEST_PORT);
-});
-  
+};
+
+$(Swiftest);
+
+// vim: set sw=2:
