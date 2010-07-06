@@ -29,7 +29,7 @@ class Swiftest
   class JavascriptError < StandardError; end
   include SwiftestCommands
 
-  SELF_LAUNCH = true
+  SELF_LAUNCH = ENV.include?("SWIFTEST_LAUNCH") && ENV["SWIFTEST_LAUNCH"].downcase.strip == "self"
 
   def self.newOrRecover(*args)
 	@@storedState ||= {}
@@ -84,8 +84,8 @@ class Swiftest
 	  xmlout.puts descriptor
 	end
 
-	# Open up the modified descriptor with ADL.
-	if SELF_LAUNCH
+	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
+	if !SELF_LAUNCH
 	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl #@new_descriptor_file #@relative_dir")
 	  @started = true
 	  at_exit do stop end
