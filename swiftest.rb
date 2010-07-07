@@ -127,6 +127,7 @@ class Swiftest
 	# Block for the client
 	STDERR.puts "engage!"
 	@client = @server.accept
+  	@started = true
   end
 
   def stop
@@ -176,7 +177,7 @@ class Swiftest
 	begin
 	  success = recv_bool
 	rescue Errno::ECONNRESET => e
-	  STDERR.puts "connection reset!"
+	  STDERR.puts "connection reset! sending #{command.inspect}, #{args.inspect}"
 	  exit 250
 	end
 
