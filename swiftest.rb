@@ -61,17 +61,19 @@ class Swiftest
 	@port = @server.addr[1]
 	
 	@new_content_file = "#@content_file.swiftest.html"
-	# We make a copy of the initial page and drop some JavaScript in at the end.
-	FileUtils.cp File.join(@relative_dir, @content_file), File.join(@relative_dir, @new_content_file)
 
-	File.open(File.join(@relative_dir, @new_content_file), "a") do |html|
-	  html.puts <<-EOS
+	# We add the script tags to the end of the </head> tag and then place it in position for the new
+	# (doctored) content file.  Don't just append it, a <script/> tag outside of the normal place
+	# can kill AIR!
+	new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub /<\/head>/i, <<-EOS
 		<script type="text/javascript">
 		  var SWIFTEST_PORT = #@port;
 		</script>
 		<script type="text/javascript" src="inject.swiftest.js"></script>
-	  EOS
-	end
+	  </head>
+	EOS
+
+	File.open(File.join(@relative_dir, @new_content_file), "w") {|f| f.write(new_content)}
 
 	# Actually drop inject.js in under the right name.
 	FileUtils.cp File.join(SWIFTEST_BASE, "inject.js"), File.join(@relative_dir, "inject.swiftest.js")
