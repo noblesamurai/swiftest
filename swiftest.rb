@@ -127,7 +127,7 @@ class Swiftest
 	end
 
 	# Block for the client
-	STDERR.puts "engage!"
+	STDERR.puts "engage!" if SELF_LAUNCH
 	@client = @server.accept
   	@started = true
   end
