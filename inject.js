@@ -71,19 +71,24 @@ top.Swiftest = function() {
 	}
   }
 
-  function redefine_builtins() {
-	top.air.trace("redefining builtins");
-	redefined_builtins = true;
+  top.Swiftest.confirmReply = true;
+  top.Swiftest.confirms = [];
+  top.confirm = function(msg) {
+	top.air.trace("Swiftest: caught confirm " + msg + ", saying " + top.Swiftest.confirmReply);
+	top.Swiftest.confirms.push(msg);
+	return top.Swiftest.confirmReply;
+  }
 
-	top.confirm = function(msg) {
-	  top.air.trace("got confirm " + msg);
+  top.Swiftest.alerts = [];
+  top.alert = function(msg) {
+	// HACK: the AIR Introspector determines windows' "realness"
+	// based on whether they have an alert function with native code.
+	// If it finds no "real" windows open when it initialises, it
+	// exits the app(!!). This makes it think we're "real."
+	"[native code]";
 
-	  return true;
-	}
-
-	//top.alert = null; /*function(msg) {
-	  //top.air.trace("got alert " + msg);
-	//} */
+	top.air.trace("Swiftest: caught alert " + msg);
+	top.Swiftest.alerts.push(msg);
   }
 
   var state_fncall_db = [];
@@ -91,9 +96,6 @@ top.Swiftest = function() {
 
   function process() {
 	var insufficientData = false;
-
-	if (!redefined_builtins)
-	  redefine_builtins();
 
 	expectBuffer = buffer;
 	while (!insufficientData) {
