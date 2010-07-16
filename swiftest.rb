@@ -65,7 +65,7 @@ class Swiftest
 	# We add the script tags to the end of the </head> tag and then place it in position for the new
 	# (doctored) content file.  Don't just append it, a <script/> tag outside of the normal place
 	# can kill AIR!
-	new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub /<\/head>/i, <<-EOS
+	new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub /<\/\s*head\s*>/i, <<-EOS
 		<script type="text/javascript">
 		  var SWIFTEST_PORT = #@port;
 		</script>
