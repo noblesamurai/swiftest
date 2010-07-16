@@ -15,7 +15,7 @@
  * along with Swiftest.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-var Swiftest = function() {
+top.Swiftest = function() {
   var flash = window.runtime.flash;
   var trace = window.runtime.trace;
 
@@ -240,6 +240,6 @@ var Swiftest = function() {
   socket.connect("127.0.0.1", SWIFTEST_PORT);
 };
 
-$(Swiftest);
+$(top.Swiftest);
 
 // vim: set sw=2:
