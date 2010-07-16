@@ -115,6 +115,8 @@ class Swiftest
 			  end
 			end
 		  end
+		rescue EOFError
+		  # Ignore this, it's nothing.
 		rescue IOError
 		  STDERR.puts "ioerror in reader thread: #{$!.inspect}"
 		  exit
