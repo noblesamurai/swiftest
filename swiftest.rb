@@ -51,6 +51,8 @@ class Swiftest
 	descriptor = Hpricot.XML(@descriptor_xml)
 	@id = (descriptor/"application > id").text
 	@content_file = (descriptor/"application > initialWindow > content").inner_html
+
+	@expected_alerts, @expected_confirms = [], []
   end
 
   # Bootstrap the application.
@@ -199,7 +201,26 @@ class Swiftest
 
 	raise JavascriptError, recv_str unless success
 
-	eval(recv_str)
+	r = eval(recv_str)
+
+	if confirms_or_alerts
+	  alerts, confirms = send_command "aac-state"
+	  while alerts.length > 0
+		raise "Unexpected alert #{alerts[0]}" if @expected_alerts.length.zero?
+		raise "Unexpected alert #{alerts[0]}" unless @expected_alerts[0] === alerts[0]
+		alerts.shift
+		@expected_alerts.shift
+	  end
+
+	  while confirms.length > 0
+		raise "Unexpected confirm #{confirms[0]}" if @expected_confirms.length.zero?
+		raise "Unexpected confirm #{confirms[0]}" unless @expected_confirms[0] === confirms[0]
+		confirms.shift
+		@expected_confirms.shift
+	  end
+	end
+
+	r
   end
 
   def send_int int
@@ -241,6 +262,48 @@ class Swiftest
 
   def started?
 	@started
+  end
+
+  def expect_confirm match, ok, soft=false, &b
+	raise "We don't support nested confirm expects yet!" if @expected_confirms.length > 0
+
+	@expected_confirms << match
+	send_command "set-confirm-reply", ok
+
+	b.call
+
+	if @expected_confirms[-1] == match
+	  if soft
+		@expected_confirms.pop
+	  else
+		raise "Expected confirm #{match.inspect} didn't occur!"
+	  end
+	end
+
+	# as if nested?
+	raise "Something else happened with confirm expect #{match.inspect}." if @expected_confirms.length > 0
+  end
+
+  def soft_expect_confirm match, ok, &b
+	expect_confirm match, ok, true, &b
+  end
+
+  def expect_alert match, soft=false, &b
+	@expected_alerts << match
+
+	b.call
+
+	if @expected_alerts[-1] == match
+	  if soft
+		@expected_alerts.pop
+	  else
+		raise "Expected alert #{match.inspect} didn't occur!"
+	  end
+	end
+  end
+
+  def soft_expect_alert match, &b
+	expect_alert match, &b
   end
 end
 

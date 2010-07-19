@@ -201,6 +201,15 @@ top.Swiftest = function() {
 	  state_fncall_db.push(current);
 	  return [current, state_fncall_db.length - 1];
 	},
+	'aac-state': function() {
+	  var rval = [top.Swiftest.alerts, top.Swiftest.confirms];
+	  top.Swiftest.alerts = [];
+	  top.Swiftest.confirms = [];
+	  return rval;
+	},
+	'set-confirm-reply': function(reply) {
+	  top.Swiftest.confirmReply = (reply + "" == "true");
+	},
   };
 
   function expect_int() {
