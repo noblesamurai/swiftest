@@ -52,7 +52,7 @@ class Swiftest
 	@id = (descriptor/"application > id").text
 	@content_file = (descriptor/"application > initialWindow > content").inner_html
 
-	@expected_alerts, @expected_confirms = [], []
+	@expected_alerts, @expected_confirms, @expected_prompts = [], [], []
   end
 
   # Bootstrap the application.
@@ -204,7 +204,8 @@ class Swiftest
 	r = eval(recv_str)
 
 	if confirms_or_alerts
-	  alerts, confirms = send_command "aac-state"
+	  alerts, confirms, prompts = send_command "acp-state"
+
 	  while alerts.length > 0
 		raise "Unexpected alert #{alerts[0]}" if @expected_alerts.length.zero?
 		raise "Unexpected alert #{alerts[0]}" unless @expected_alerts[0] === alerts[0]
@@ -217,6 +218,13 @@ class Swiftest
 		raise "Unexpected confirm #{confirms[0]}" unless @expected_confirms[0] === confirms[0]
 		confirms.shift
 		@expected_confirms.shift
+	  end
+
+	  while prompts.length > 0
+		raise "Unexpected prompt #{prompts[0]}" if @expected_prompts.length.zero?
+		raise "Unexpected prompt #{prompts[0]}" unless @expected_prompts[0] === prompts[0]
+		prompts.shift
+		@expected_prompts.shift
 	  end
 	end
 
@@ -266,17 +274,12 @@ class Swiftest
 
   def expect_confirm match, ok, soft=false, &b
 	@expected_confirms << match
-
 	restore_cr = send_command("set-confirm-reply", ok)
-
 	b.call
 
 	if @expected_confirms[-1] == match
-	  if soft
-		@expected_confirms.pop
-	  else
-		raise "Expected confirm #{match.inspect} didn't occur!"
-	  end
+	  raise "Expected confirm #{match.inspect} didn't occur!" unless soft
+	  @expected_confirms.pop
 	end
 
 	send_command "set-confirm-reply", restore_cr
@@ -288,20 +291,37 @@ class Swiftest
 
   def expect_alert match, soft=false, &b
 	@expected_alerts << match
-
 	b.call
 
 	if @expected_alerts[-1] == match
-	  if soft
-		@expected_alerts.pop
-	  else
-		raise "Expected alert #{match.inspect} didn't occur!"
-	  end
+	  raise "Expected alert #{match.inspect} didn't occur!" unless soft
+	  @expected_alerts.pop
 	end
   end
 
   def soft_expect_alert match, &b
-	expect_alert match, &b
+	expect_alert match, true, &b
+  end
+
+  # Note that 'reply' can be :default or :cancel
+  def expect_prompt match, reply, soft=false, &b
+	reply = "::DEFAULT::" if reply == :default
+	reply = "::CANCEL::" if reply == :cancel
+
+	@expected_prompts << match
+	restore_pr = send_command("set-prompt-reply", reply)
+	b.call
+
+	if @expected_prompts[-1] == match
+	  raise "Expected prompt #{match.inspect} didn't occur!" unless soft
+	  @expected_prompts.pop
+	end
+
+	send_command "set-prompt-reply", restore_pr
+  end
+
+  def soft_expect_prompt match, reply, &b
+	expect_prompt match, reply, true, &b
   end
 end
 

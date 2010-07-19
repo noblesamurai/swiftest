@@ -71,14 +71,6 @@ top.Swiftest = function() {
 	}
   }
 
-  top.Swiftest.confirmReply = true;
-  top.Swiftest.confirms = [];
-  top.confirm = function(msg) {
-	top.air.trace("Swiftest: caught confirm " + msg + ", saying " + top.Swiftest.confirmReply);
-	top.Swiftest.confirms.push(msg);
-	return top.Swiftest.confirmReply;
-  }
-
   top.Swiftest.alerts = [];
   top.alert = function(msg) {
 	// HACK: the AIR Introspector determines windows' "realness"
@@ -89,6 +81,29 @@ top.Swiftest = function() {
 
 	top.air.trace("Swiftest: caught alert " + msg);
 	top.Swiftest.alerts.push(msg);
+  }
+
+  top.Swiftest.confirmReply = true;
+  top.Swiftest.confirms = [];
+  top.confirm = function(msg) {
+	top.air.trace("Swiftest: caught confirm " + msg + ", saying " + top.Swiftest.confirmReply);
+	top.Swiftest.confirms.push(msg);
+	return top.Swiftest.confirmReply;
+  }
+
+  top.Swiftest.promptReply = "::DEFAULT::";
+  top.Swiftest.prompts = [];
+  top.prompt = function(msg, default) {
+	var reply = top.Swiftest.promptReply;
+
+	if (reply == "::DEFAULT::")
+	  reply = default;
+	else if (reply == "::CANCEL::")
+	  reply = null;
+
+	top.air.trace("Swiftest: caught prompt " + msg + " with default " + default + ", saying " + reply);
+	top.Swiftest.prompts.push(msg);
+	return reply;
   }
 
   var state_fncall_db = [];
@@ -201,16 +216,22 @@ top.Swiftest = function() {
 	  state_fncall_db.push(current);
 	  return [current, state_fncall_db.length - 1];
 	},
-	'aac-state': function() {
-	  var rval = [top.Swiftest.alerts, top.Swiftest.confirms];
+	'acp-state': function() {
+	  var rval = [top.Swiftest.alerts, top.Swiftest.confirms, top.Swiftest.prompts];
 	  top.Swiftest.alerts = [];
 	  top.Swiftest.confirms = [];
+	  top.Swiftest.prompts = [];
 	  return rval;
 	},
 	'set-confirm-reply': function(reply) {
 	  var oldCr = top.Swiftest.confirmReply;
 	  top.Swiftest.confirmReply = (reply + "" == "true");
 	  return oldCr;
+	},
+	'set-prompt-reply': function(reply) {
+	  var oldPr = top.Swiftest.promptReply;
+	  top.Swiftest.promptReply = reply;
+	  return oldPr;
 	},
   };
 
