@@ -191,6 +191,7 @@ class Swiftest
 
 	begin
 	  success = recv_bool
+	  confirms_or_alerts = recv_bool
 	rescue Errno::ECONNRESET => e
 	  STDERR.puts "connection reset! sending #{command.inspect}, #{args.inspect}"
 	  exit 250

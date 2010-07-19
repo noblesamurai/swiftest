@@ -152,6 +152,7 @@ top.Swiftest = function() {
 	  }
 
 	  send_bool(success);
+	  send_bool(top.Swiftest.alerts.length > 0 || top.Swiftest.confirms.length > 0);
 	  send_str(ruby_escape(result));
 	  flush();
 	},
