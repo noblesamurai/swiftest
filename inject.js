@@ -93,15 +93,15 @@ top.Swiftest = function() {
 
   top.Swiftest.promptReply = "::DEFAULT::";
   top.Swiftest.prompts = [];
-  top.prompt = function(msg, default) {
+  top.prompt = function(msg, def) {
 	var reply = top.Swiftest.promptReply;
 
 	if (reply == "::DEFAULT::")
-	  reply = default;
+	  reply = def;
 	else if (reply == "::CANCEL::")
 	  reply = null;
 
-	top.air.trace("Swiftest: caught prompt " + msg + " with default " + default + ", saying " + reply);
+	top.air.trace("Swiftest: caught prompt " + msg + " with default " + def + ", saying " + reply);
 	top.Swiftest.prompts.push(msg);
 	return reply;
   }
