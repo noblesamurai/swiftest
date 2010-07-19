@@ -208,7 +208,9 @@ top.Swiftest = function() {
 	  return rval;
 	},
 	'set-confirm-reply': function(reply) {
+	  var oldCr = top.Swiftest.confirmReply;
 	  top.Swiftest.confirmReply = (reply + "" == "true");
+	  return oldCr;
 	},
   };
 

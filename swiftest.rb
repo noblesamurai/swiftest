@@ -265,10 +265,9 @@ class Swiftest
   end
 
   def expect_confirm match, ok, soft=false, &b
-	raise "We don't support nested confirm expects yet!" if @expected_confirms.length > 0
-
 	@expected_confirms << match
-	send_command "set-confirm-reply", ok
+
+	restore_cr = send_command("set-confirm-reply", ok)
 
 	b.call
 
@@ -280,8 +279,7 @@ class Swiftest
 	  end
 	end
 
-	# as if nested?
-	raise "Something else happened with confirm expect #{match.inspect}." if @expected_confirms.length > 0
+	send_command "set-confirm-reply", restore_cr
   end
 
   def soft_expect_confirm match, ok, &b
