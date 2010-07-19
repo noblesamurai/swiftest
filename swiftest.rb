@@ -57,7 +57,18 @@ class Swiftest
   def start
 	raise AlreadyStartedError if @started
 
-	@server = TCPServer.open(0)
+	begin
+	  @server = TCPServer.open(0)
+	rescue SocketError
+	  # Possibly OS X being rubbish.
+	  while !@server
+		begin
+		  @server = TCPServer.open('0.0.0.0', 20000 + rand(10000))
+		rescue SocketError
+		  STDERR.puts "Failed to open local server again."
+		end
+	  end
+	end
 	@port = @server.addr[1]
 	
 	@new_content_file = "#@content_file.swiftest.html"
