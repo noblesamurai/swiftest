@@ -205,8 +205,12 @@ class SwiftestScreen
 	  def length; obtain.length; end
 	  def found?; obtain.length > 0; end
 	  def visible?
-		@visible_call ?
-		  @screen.instance_eval(&@visible_call) : obtain.is(":visible")
+		begin
+		  @visible_call ?
+			@screen.instance_eval(&@visible_call) : obtain.is(":visible")
+		rescue ElementNotFoundError
+		  false
+		end
 	  end
 
 	  def blur; obtain.blur; end
