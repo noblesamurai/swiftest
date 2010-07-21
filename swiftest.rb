@@ -17,6 +17,7 @@ require 'rubygems'
 require 'hpricot'
 require 'socket'
 require 'open4'
+require 'base64'
 
 SWIFTEST_BASE = File.dirname(__FILE__)
 
@@ -75,16 +76,41 @@ class Swiftest
 	
 	@new_content_file = "#@content_file.swiftest.html"
 
+	bannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "banner.png"))).gsub("\n", "")
+
 	# We add the script tags to the end of the </head> tag and then place it in position for the new
 	# (doctored) content file.  Don't just append it, a <script/> tag outside of the normal place
 	# can kill AIR!
-	new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub /<\/\s*head\s*>/i, <<-EOS
-		<script type="text/javascript">
+	new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub(/<\/\s*head\s*>/i, "
+		<script type='text/javascript'>
 		  var SWIFTEST_PORT = #@port;
 		</script>
-		<script type="text/javascript" src="inject.swiftest.js"></script>
-	  </head>
-	EOS
+		<script type='text/javascript' src='inject.swiftest.js'></script>
+		<style type='text/css'>
+		  #swiftest-overlay-ff {
+			position: absolute; display: block;
+
+			bottom: 0px; right: 0px;
+			left: 0px; height: 20px;
+
+			z-index: 10000000;
+
+			background: url('data:image/png;base64,#{bannerb64}');
+		  }
+		  #swiftest-overlay-text {
+			display: block;
+
+			margin-left: auto; margin-right: auto; margin-top: 4px;
+			width: 8em; height: 14px;
+
+			background: rgba(0, 0, 0, 0.8);
+			color: #fff;
+
+			text-align: center;
+			font-size: 12px;
+		  }
+		</style>
+	  </head>").gsub(/(<\s*body[^>]*>)/i, "\\1<div id='swiftest-overlay-ff'><div id='swiftest-overlay-text'>swiftest</div></div>")
 
 	File.open(File.join(@relative_dir, @new_content_file), "w") {|f| f.write(new_content)}
 
@@ -325,3 +351,4 @@ class Swiftest
   end
 end
 
+# vim: set sw=2:

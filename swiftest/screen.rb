@@ -308,7 +308,7 @@ class SwiftestScreen
 	  def html=(new_val); obtain.html(new_val).change; end
 
 	  def select_text(text)
-		node = obtain.find(":contains(#{text.inspect}):not(div)").get(0).firstChild
+		node = obtain.find(":contains(#{text.inspect})").get(0).firstChild
 		node_text = node.nodeValue
 
 		raise "Text #{test.inspect} not found in node contents #{node_text.inspect}" if node_text.index(text).nil?
