@@ -336,6 +336,17 @@ class SwiftestScreen
 		sel.removeAllRanges
 		sel.addRange(range)
 	  end
+
+	  def delete_selected_text
+		this = obtain.get(0)
+		sel = this.ownerDocument.getSelection
+
+		r = sel.getRangeAt(0).commonAncestorContainer
+		r = r.parentNode while r.parentNode and not r.isEqualNode(this)
+		raise "Selection not within this container" if not r.parentNode
+
+		sel.deleteFromDocument
+	  end
 	end
 
 	link_item_class :item, JQueryAccessibleField
