@@ -321,6 +321,21 @@ class SwiftestScreen
 		sel.removeAllRanges
 		sel.addRange(range)
 	  end
+
+	  def select_p_containing(text)
+		node = obtain.find("p:contains(#{text.inspect})").get(0).firstChild
+		node_text = node.nodeValue
+
+		raise "Text #{test.inspect} not found in node contents #{node_text.inspect}" if node_text.index(text).nil?
+
+		range = node.ownerDocument.createRange
+		range.setStartBefore(node)
+		range.setEndAfter(node)
+
+		sel = top.window.getSelection
+		sel.removeAllRanges
+		sel.addRange(range)
+	  end
 	end
 
 	link_item_class :item, JQueryAccessibleField
