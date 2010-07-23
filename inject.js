@@ -267,6 +267,16 @@ top.Swiftest = function() {
 	socket.flush();
   }
 
+  top.Swiftest.manual_pass = function() {
+	send_bool(true);
+  };
+  top.Swiftest.manual_fail = function() {
+	send_bool(false);
+  };
+
+  $(".swiftest-overlay-manual-pass").click(top.Swiftest.manual_pass);
+  $(".swiftest-overlay-manual-fail").click(top.Swiftest.manual_fail);
+
   socket.addEventListener(flash.events.ProgressEvent.SOCKET_DATA, function(e) {
 	buffer += socket.readUTFBytes(socket.bytesAvailable);
 	process();

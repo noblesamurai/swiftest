@@ -135,5 +135,10 @@ module SwiftestCommands
 
   # So you can do swiftest.top.window.... etc.
   alias top fncall
+
+  def manual_pass?
+	recv_bool
+  end
 end
 
+# vim: set sw=2:
