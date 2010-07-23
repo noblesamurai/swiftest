@@ -58,7 +58,7 @@ a.swiftest-overlay-manual-pass, a.swiftest-overlay-manual-fail {
 	color: #000 !important;
 }
 
-#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail:hover {
+#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail {
 	background: rgba(255, 0, 0, 0.8);
 }
 #swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail:hover {
