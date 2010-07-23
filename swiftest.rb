@@ -100,6 +100,8 @@ class Swiftest
 		  <div id='swiftest-overlay-left'>
 			initialising
 		  </div>
+		  <a class='swiftest-overlay-manual-pass' href='#'>Pass</a>
+		  <a class='swiftest-overlay-manual-fail' href='#'>Fail</a>
 		</div>
 		<div class='swiftest-overlay-text' id='swiftest-overlay-right'>swiftest</div>
 	  </div>")
