@@ -32,13 +32,19 @@ class Swiftest
 
   SELF_LAUNCH = ENV.include?("SWIFTEST_LAUNCH") && ENV["SWIFTEST_LAUNCH"].downcase.strip == "self"
 
+  @@storedState = {}
   def self.newOrRecover(*args)
-	@@storedState ||= {}
 	return @@storedState[args.hash] if @@storedState.keys.include? args.hash
 
 	swiftest = new(args.hash, *args)
 	@@storedState[args.hash] = swiftest
 	swiftest
+  end
+
+  def self.active
+	return nil if @@storedState.length > 1
+	return nil if @@storedState.length < 1
+	@@storedState.first[1]
   end
 
   def initialize(hash, descriptor_path, initial_content=nil)
