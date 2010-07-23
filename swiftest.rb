@@ -93,7 +93,7 @@ class Swiftest
 		</script>
 		<script type='text/javascript' src='inject.swiftest.js'></script>
 		<style type='text/css'>
-		  #{File.read(File.join(SWIFTEST_BASE, "inject.css").gsub("BANNERB64", bannerb64))}
+		  #{File.read(File.join(SWIFTEST_BASE, "inject.css")).gsub("BANNERB64", bannerb64)}
 		</style>
 	  </head>").gsub(/(<\s*body[^>]*>)/i, "\\1\<div id='swiftest-overlay-ff'>
 		<div class='swiftest-overlay-text' id='swiftest-overlay-left-container'>

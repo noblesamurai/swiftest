@@ -67,11 +67,11 @@ class SwiftestScreen
 	def self.link_item_class(constructor_name, klass)
 	  class_eval <<-EOE
 		def #{constructor_name}(field_name, selector, &helper)
-		  link_item_class_constructor(#{klass}, field_name, selector, &helper)
+		  link_item_class_constructor(#{klass}, #{constructor_name.to_s.inspect}, field_name, selector, &helper)
 		end
 
 		def #{constructor_name}_array(field_name, selector, &helper)
-		  link_item_class_constructor(#{klass}, field_name, selector, true, &helper)
+		  link_item_class_constructor(#{klass}, #{constructor_name.to_s.inspect}, field_name, selector, true, &helper)
 		end
 	  EOE
 	end
@@ -147,7 +147,7 @@ class SwiftestScreen
 	#   Optionally, a block can be supplied which will be evaluated in
 	# the context of a +LinkItemHelperDescriptor+, itself being a
 	# +ScreenDescriptor+.  This may specify subobjects, or a disambiguator.
-	def link_item_class_constructor klass, field_name, selector, array=false, &helper
+	def link_item_class_constructor klass, ctor_name, field_name, selector, array=false, &helper
 	  if not array
 		target = klass.new(@screen, selector)
 		LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
@@ -158,6 +158,10 @@ class SwiftestScreen
 		  target
 		})
 	  end
+
+	  cta = @screen.type_arrays[ctor_name.to_sym]
+	  cta << target
+	  @screen.type_arrays[ctor_name.to_sym] = cta
 
 	  @screen.instance_variable_set "@#{field_name}", target
 	  @metaklass.send :define_method, field_name do 
@@ -196,6 +200,7 @@ class SwiftestScreen
 		@switch_to, @base_call, @allow_nil = {}, nil, false
 
 		@visible_call = nil
+		super(nil)
 	  end
 
 	  def [](index)
@@ -484,12 +489,13 @@ class SwiftestScreen
   # current_when's delegate.
   #   It's set by SwiftestEnvironment#init_screens.
   attr_accessor :top
-  attr_accessor :name, :description
+  attr_accessor :name, :description, :type_arrays
 
   protected :initialize
 
   def initialize(name)
 	@name = name
+	@type_arrays = Hash.new { Array.new }
   end
 end
 
