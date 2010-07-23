@@ -11,7 +11,7 @@
 #swiftest-overlay-left-container {
   position: absolute; display: block;
   height: 14px;
-  left: 4px; bottom: 2px;
+  left: 4px; right: 4px; bottom: 2px;
 
   background: none;
 
@@ -37,7 +37,12 @@
   font-size: 12px;
   text-align: center;
 }
-.swiftest-overlay-manual-pass, .swiftest-overlay-manual-fail {
+a.swiftest-overlay-manual-pass, a.swiftest-overlay-manual-fail {
+	display: none;
+}
+#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-pass,
+#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail {
+	display: inline;
 	padding: 1px 12px;
 
 	background: rgba(255, 255, 255, 1.0);
@@ -45,18 +50,18 @@
 
 	font-weight: bold;
 }
-.swiftest-overlay-manual-pass {
+#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-pass {
 	background: rgba(0, 255, 0, 0.8);
 }
-a.swiftest-overlay-manual-pass:hover {
+#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-pass:hover {
 	background: rgba(100, 255, 100, 1.0);
 	color: #000 !important;
 }
 
-.swiftest-overlay-manual-fail {
+#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail:hover {
 	background: rgba(255, 0, 0, 0.8);
 }
-a.swiftest-overlay-manual-fail:hover {
+#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail:hover {
 	background: rgba(255, 100, 100, 1.0);
 	color: #000 !important;
 }
