@@ -83,6 +83,7 @@ class Swiftest
 	@new_content_file = "#@content_file.swiftest.html"
 
 	bannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "banner.png"))).gsub("\n", "")
+	rbannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "rbanner.png"))).gsub("\n", "")
 
 	# We add the script tags to the end of the </head> tag and then place it in position for the new
 	# (doctored) content file.  Don't just append it, a <script/> tag outside of the normal place
@@ -93,7 +94,7 @@ class Swiftest
 		</script>
 		<script type='text/javascript' src='inject.swiftest.js'></script>
 		<style type='text/css'>
-		  #{File.read(File.join(SWIFTEST_BASE, "inject.css")).gsub("BANNERB64", bannerb64)}
+		  #{File.read(File.join(SWIFTEST_BASE, "inject.css")).gsub("YBANNERB64", bannerb64).gsub("RBANNERB64", rbannerb64)}
 		</style>
 	  </head>").gsub(/(<\s*body[^>]*>)/i, "\\1\<div id='swiftest-overlay-ff'>
 		<div class='swiftest-overlay-text' id='swiftest-overlay-left-container'>

@@ -6,7 +6,10 @@
 
   z-index: 10000000;
 
-  background: url('data:image/png;base64,BANNERB64');
+  background: url('data:image/png;base64,YBANNERB64');
+}
+#swiftest-overlay-ff.manual {
+  background: url('data:image/png;base64,RBANNERB64');
 }
 #swiftest-overlay-left-container {
   position: absolute; display: block;
@@ -40,8 +43,8 @@
 a.swiftest-overlay-manual-pass, a.swiftest-overlay-manual-fail {
 	display: none;
 }
-#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-pass,
-#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail {
+#swiftest-overlay-ff.manual a.swiftest-overlay-manual-pass,
+#swiftest-overlay-ff.manual a.swiftest-overlay-manual-fail {
 	display: inline;
 	padding: 1px 12px;
 
@@ -50,18 +53,18 @@ a.swiftest-overlay-manual-pass, a.swiftest-overlay-manual-fail {
 
 	font-weight: bold;
 }
-#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-pass {
+#swiftest-overlay-ff.manual a.swiftest-overlay-manual-pass {
 	background: rgba(0, 255, 0, 0.8);
 }
-#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-pass:hover {
+#swiftest-overlay-ff.manual a.swiftest-overlay-manual-pass:hover {
 	background: rgba(100, 255, 100, 1.0);
 	color: #000 !important;
 }
 
-#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail {
+#swiftest-overlay-ff.manual a.swiftest-overlay-manual-fail {
 	background: rgba(255, 0, 0, 0.8);
 }
-#swiftest-overlay-left-container.manual a.swiftest-overlay-manual-fail:hover {
+#swiftest-overlay-ff.manual a.swiftest-overlay-manual-fail:hover {
 	background: rgba(255, 100, 100, 1.0);
 	color: #000 !important;
 }
