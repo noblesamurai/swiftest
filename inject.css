@@ -1,0 +1,39 @@
+#swiftest-overlay-ff {
+  position: absolute; display: block;
+
+  bottom: 0px; right: 0px;
+  left: 0px; height: 20px;
+
+  z-index: 10000000;
+
+  background: url('data:image/png;base64,BANNERB64');
+}
+#swiftest-overlay-left-container {
+  position: absolute; display: block;
+  width: 40em; height: 14px;
+  left: 4px; bottom: 2px;
+
+  background: none;
+
+  font-size: 12px;
+}
+#swiftest-overlay-left {
+  display: inline;
+  height: 14px;
+  padding: 1px 12px;
+
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+
+}
+#swiftest-overlay-right {
+  position: absolute; display: block;
+  width: 7em;
+  right: 4px; bottom: 2px;
+
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+
+  font-size: 12px;
+  text-align: center;
+}

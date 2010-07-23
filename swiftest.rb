@@ -93,30 +93,16 @@ class Swiftest
 		</script>
 		<script type='text/javascript' src='inject.swiftest.js'></script>
 		<style type='text/css'>
-		  #swiftest-overlay-ff {
-			position: absolute; display: block;
-
-			bottom: 0px; right: 0px;
-			left: 0px; height: 20px;
-
-			z-index: 10000000;
-
-			background: url('data:image/png;base64,#{bannerb64}');
-		  }
-		  #swiftest-overlay-text {
-			display: block;
-
-			margin-left: auto; margin-right: auto; margin-top: 4px;
-			width: 8em; height: 14px;
-
-			background: rgba(0, 0, 0, 0.8);
-			color: #fff;
-
-			text-align: center;
-			font-size: 12px;
-		  }
+		  #{File.read(File.join(SWIFTEST_BASE, "inject.css").gsub("BANNERB64", bannerb64))}
 		</style>
-	  </head>").gsub(/(<\s*body[^>]*>)/i, "\\1<div id='swiftest-overlay-ff'><div id='swiftest-overlay-text'>swiftest</div></div>")
+	  </head>").gsub(/(<\s*body[^>]*>)/i, "\\1\<div id='swiftest-overlay-ff'>
+		<div class='swiftest-overlay-text' id='swiftest-overlay-left-container'>
+		  <div id='swiftest-overlay-left'>
+			initialising
+		  </div>
+		</div>
+		<div class='swiftest-overlay-text' id='swiftest-overlay-right'>swiftest</div>
+	  </div>")
 
 	File.open(File.join(@relative_dir, @new_content_file), "w") {|f| f.write(new_content)}
 
