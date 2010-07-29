@@ -245,11 +245,12 @@ Toy around with it, and use more evals and blocks.
 ## contributors
 
  - [Arlen Cuss](http://github.com/celtic)
+ - [Daniel Assange](http://github.com/lumifish)
  - You?
 
 ## license
 
-Copyright 2010 Arlen Cuss
+Copyright 2010 Arlen Cuss, Daniel Assange
 
 Swiftest is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
