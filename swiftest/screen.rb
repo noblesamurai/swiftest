@@ -253,7 +253,10 @@ class SwiftestScreen
 		end
 	  end
 
-	  private
+	  def keytarget
+		obtain
+	  end
+
 	  def obtain
 		loc = @screen.locate(@selector,
 							 @base_call && @screen.instance_eval(&@base_call),
