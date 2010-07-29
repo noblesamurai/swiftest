@@ -187,8 +187,6 @@ top.Swiftest = function() {
 	  fn = fn.substr(0, fn.length - 1);
 	  target[fn] = args[0];
 	  return target[fn];
-	} else if (target[fn] === undefined) {
-	  return undefined;
 	} else if (typeof target[fn] != "function" && args.length == 0) {
 	  return target[fn];
 	} else if (typeof target[fn] == "function" && args.length == 0
@@ -202,6 +200,9 @@ top.Swiftest = function() {
 
 	  return target[fn];
 	} else {
+	  if (target[fn] === undefined) {
+		throw new Error("trying to call " + target + "." + fn + ", which is undefined");
+	  }
 	  return target[fn].apply(target, args);
 	}
   }
