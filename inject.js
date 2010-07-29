@@ -180,12 +180,24 @@ top.Swiftest = function() {
 	// appears not to be a function at all, just use it like an
 	// object.
 	
-	if (typeof target[fn] != "function" && args.length == 0) {
+	if (fn[fn.length - 1] == "=") {
+	  // Assignment.
+	  fn = fn.substr(0, fn.length - 1);
+	  target[fn] = args[0];
+	  return target[fn];
+	} else if (target[fn] === undefined) {
+	  return undefined;
+	} else if (typeof target[fn] != "function" && args.length == 0) {
 	  return target[fn];
 	} else if (typeof target[fn] == "function" && args.length == 0
-		&& ("" + target[fn]).match(/^\[class .*\]$/)
-		&& target[fn].constructor == target[fn].constructor.constructor) {
-	  // Looks like an ActionScript class.
+		&& (
+		  (("" + target[fn]).match(/^\[class .*\]$/)
+			&& target[fn].constructor == target[fn].constructor.constructor)
+		  || (target[fn].fn && typeof target[fn].fn.jquery == "string"))) {
+		  
+	  // Looks like an ActionScript class, or the jQuery function/object.
+	  // Given it's being called without args, traverse it instead.
+
 	  return target[fn];
 	} else {
 	  return target[fn].apply(target, args);
