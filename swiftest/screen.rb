@@ -225,6 +225,7 @@ class SwiftestScreen
 	  def disabled=(val); attrs["disabled"] = val; end
 	  def text; obtain.text; end
 	  def click; obtain.click; end
+	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
 
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
