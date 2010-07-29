@@ -207,6 +207,8 @@ class SwiftestScreen
 		raise "I wasn't declared as an array!"
 	  end
 
+	  def DOM_node(index=0); obtain.get(index); end
+
 	  def length; obtain.length; end
 	  def found?; obtain.length > 0; end
 	  def visible?
