@@ -234,6 +234,11 @@ class SwiftestScreen
 		keytarget.trigger(e)
 	  end
 
+	  # The active element in the same HTMLDocument as this element.
+	  def activeElement
+		top.jQuery(self.get(0).ownerDocument.activeElement)
+	  end
+
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
 	  def top; @screen.top; end
 
