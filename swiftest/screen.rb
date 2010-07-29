@@ -228,6 +228,12 @@ class SwiftestScreen
 	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
 
+	  def keydown(which, shift=false)
+		e = top.jQuery.Event("keydown")
+		e.which = which
+		keytarget.trigger(e)
+	  end
+
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
 	  def top; @screen.top; end
 
