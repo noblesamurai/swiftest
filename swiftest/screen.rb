@@ -240,7 +240,7 @@ class SwiftestScreen
 
 	  # The active element in the same HTMLDocument as this element.
 	  def activeElement
-		top.jQuery(self.get(0).ownerDocument.activeElement)
+		top.jQuery(obtain.get(0).ownerDocument.activeElement)
 	  end
 
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
