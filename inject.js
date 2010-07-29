@@ -132,6 +132,8 @@ top.Swiftest = function() {
 	return state_fncall_db[parseInt(ref)];
   }
 
+  top.Swiftest.get_back_ref = get_back_ref;
+
   var processors = {
 	'idle': function() {
 	  var command = expect_str();
