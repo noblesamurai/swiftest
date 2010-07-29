@@ -247,7 +247,7 @@ class SwiftestScreen
 		if base
 		  # Resets back to +base+ - not using our current 'state' (i.e.
 		  # the location isn't at all relative to this JQAF)
-		  base.jQuery.find(selector)
+		  base.jQuery(selector)
 		else
 		  obtain.find(selector)
 		end
@@ -472,7 +472,7 @@ class SwiftestScreen
   # instead.
   def element_locate(selector, base=nil)
 	if base
-	  base.jQuery.find(selector)
+	  base.jQuery(selector)
 	else
 	  top.jQuery(selector)
 	end
