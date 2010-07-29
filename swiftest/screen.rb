@@ -233,6 +233,8 @@ class SwiftestScreen
 	  def keydown(which, shift=false)
 		e = top.jQuery.Event("keydown")
 		e.which = which
+		e.shiftKey = shift
+
 		keytarget.trigger(e)
 	  end
 
