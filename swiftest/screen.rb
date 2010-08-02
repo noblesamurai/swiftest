@@ -355,6 +355,11 @@ class SwiftestScreen
 		sel.addRange(range)
 	  end
 
+	  def selected_text
+		# TODO: verify the selection is within this node
+		dom_node.ownerDocument.getSelection.toString
+	   end
+
 	  def select_p_containing(text)
 		node = obtain.find("p:contains(#{text.inspect})").get(0).firstChild
 		node_text = node.nodeValue
