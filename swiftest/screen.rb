@@ -118,6 +118,8 @@ class SwiftestScreen
 	  end
 
 	  def [](index)
+		index = self.length + index if index < 0
+
 		return @hash[index] if @hash.include? index
 		@hash[index] = @initializer.call(index)
 		@hash[index].base_call = @base_call if @base_call
@@ -125,6 +127,8 @@ class SwiftestScreen
 	  end
 
 	  def []=(index, value)
+		index = self.length + index if index < 0
+
 		@hash[index] = value
 	  end
 
