@@ -207,7 +207,7 @@ class SwiftestScreen
 		raise "I wasn't declared as an array!"
 	  end
 
-	  def DOM_node(index=0); obtain.get(index); end
+	  def dom_node(index=0); obtain.get(index); end
 
 	  def length; obtain.length; end
 	  def found?; obtain.length > 0; end
@@ -367,7 +367,7 @@ class SwiftestScreen
 	  end
 
 	  def delete_selected_text
-		this = obtain.get(0)
+		this = dom_node
 		sel = this.ownerDocument.getSelection
 
 		r = sel.getRangeAt(0).commonAncestorContainer
