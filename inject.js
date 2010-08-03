@@ -248,6 +248,9 @@ top.Swiftest = function() {
 	  top.Swiftest.promptReply = reply;
 	  return oldPr;
 	},
+	'noop': function() {
+	  return 42;
+	},
   };
 
   function expect_int() {
