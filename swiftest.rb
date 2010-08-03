@@ -229,22 +229,25 @@ class Swiftest
 
 	  while alerts.length > 0
 		raise "Unexpected alert #{alerts[0]}" if @expected_alerts.length.zero?
-		raise "Unexpected alert #{alerts[0]}" unless @expected_alerts[0] === alerts[0]
+		raise "Unexpected alert #{alerts[0]}" unless @expected_alerts[0].regexp === alerts[0]
 		alerts.shift
+		@expected_alerts[0].hit!
 		@expected_alerts.shift
 	  end
 
 	  while confirms.length > 0
 		raise "Unexpected confirm #{confirms[0]}" if @expected_confirms.length.zero?
-		raise "Unexpected confirm #{confirms[0]}" unless @expected_confirms[0] === confirms[0]
+		raise "Unexpected confirm #{confirms[0]}" unless @expected_confirms[0].regexp === confirms[0]
 		confirms.shift
+		@expected_confirms[0].hit!
 		@expected_confirms.shift
 	  end
 
 	  while prompts.length > 0
 		raise "Unexpected prompt #{prompts[0]}" if @expected_prompts.length.zero?
-		raise "Unexpected prompt #{prompts[0]}" unless @expected_prompts[0] === prompts[0]
+		raise "Unexpected prompt #{prompts[0]}" unless @expected_prompts[0].regexp === prompts[0]
 		prompts.shift
+		@expected_prompts[0].hit!
 		@expected_prompts.shift
 	  end
 	end
@@ -293,12 +296,23 @@ class Swiftest
 	@started
   end
 
-  def expect_confirm match, ok, soft=false, &b
-	@expected_confirms << match
-	restore_cr = send_command("set-confirm-reply", ok)
-	b.call
+  class UniqueExpect
+	def initialize regexp
+	  @regexp = regexp
+	  @hit = false
+	end
+	def hit?; @hit; end
+	def hit!; @hit = true; end
+	attr_accessor :regexp
+  end
 
-	if @expected_confirms[-1] == match
+  def expect_confirm match, ok, soft=false, &b
+	ue = UniqueExpect.new(match)
+	@expected_confirms << ue
+	restore_cr = send_command("set-confirm-reply", ok)
+	b.call ->{ue.hit?}
+
+	if @expected_confirms[-1] == ue
 	  raise "Expected confirm #{match.inspect} didn't occur!" unless soft
 	  @expected_confirms.pop
 	end
@@ -311,10 +325,11 @@ class Swiftest
   end
 
   def expect_alert match, soft=false, &b
-	@expected_alerts << match
-	b.call
+	ue = UniqueExpect.new(match)
+	@expected_alerts << ue
+	b.call ->{ue.hit?}
 
-	if @expected_alerts[-1] == match
+	if @expected_alerts[-1] == ue
 	  raise "Expected alert #{match.inspect} didn't occur!" unless soft
 	  @expected_alerts.pop
 	end
@@ -329,11 +344,12 @@ class Swiftest
 	reply = "::DEFAULT::" if reply == :default
 	reply = "::CANCEL::" if reply == :cancel
 
-	@expected_prompts << match
+	ue = UniqueExpect.new(match)
+	@expected_prompts << ue
 	restore_pr = send_command("set-prompt-reply", reply)
-	b.call
+	b.call ->{ue.hit?}
 
-	if @expected_prompts[-1] == match
+	if @expected_prompts[-1] == ue
 	  raise "Expected prompt #{match.inspect} didn't occur!" unless soft
 	  @expected_prompts.pop
 	end
