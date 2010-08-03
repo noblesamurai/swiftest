@@ -342,9 +342,14 @@ class SwiftestScreen
 		unless node.nil?
 		  node = node.firstChild 
 		  node_text = node.nodeValue
+
+		  while node_text.index(text).nil? and node.nextSibling
+			node = node.nextSibling
+			node_text = node.nodeValue
+		  end
 		end
 
-		raise "Text #{test.inspect} not found in node contents #{node_text.inspect}" if node_text.nil? or node_text.index(text).nil? or node.nil?
+		raise "Text #{text.inspect} not found in node contents #{node_text.inspect}, node being #{node.nil?}" if node_text.nil? or node_text.index(text).nil? or node.nil?
 
 		range = node.ownerDocument.createRange
 		range.setStart(node, node_text.index(text))
