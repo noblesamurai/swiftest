@@ -233,6 +233,12 @@ class SwiftestScreen
 	  def click; obtain.click; end
 	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
+	  def absolute_position
+		off = obtain.offset
+		[off.left, off.top]
+	  end
+	  def height; obtain.height; end
+	  def width; obtain.width; end
 
 	  def keydown(which, shift=false)
 		e = top.jQuery.Event("keydown")
