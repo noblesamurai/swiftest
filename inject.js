@@ -165,7 +165,7 @@ top.Swiftest = function() {
 		var result = commands[command].apply(this, args);
 		success = true;
 	  } catch (e) {
-		result = "" + e;
+		result = "" + e + " (" + e.sourceURL + ":" + e.line + "(" + e.sourceId + "))";
 	  }
 
 	  send_bool(success);
