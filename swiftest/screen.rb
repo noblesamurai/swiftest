@@ -239,6 +239,7 @@ class SwiftestScreen
 	  end
 	  def height; obtain.height; end
 	  def width; obtain.width; end
+	  def tag; dom_node.tagName.downcase; end
 
 	  def keydown(which, shift=false)
 		e = top.jQuery.Event("keydown")
@@ -250,7 +251,7 @@ class SwiftestScreen
 
 	  # The active element in the same HTMLDocument as this element.
 	  def activeElement
-		top.jQuery(obtain.get(0).ownerDocument.activeElement)
+		top.jQuery(dom_node.ownerDocument.activeElement)
 	  end
 
 	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
