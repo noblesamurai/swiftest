@@ -230,6 +230,7 @@ class SwiftestScreen
 	  def disabled?; attrs["disabled"]; end
 	  def disabled=(val); attrs["disabled"] = val; end
 	  def text; obtain.text; end
+	  def html; obtain.html; end
 	  def click; obtain.click; end
 	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
@@ -308,7 +309,9 @@ class SwiftestScreen
 	  @klass_description = "check box"
 
 	  def checked?; obtain.attr('checked'); end
-	  def checked=(new_val); obtain.attr('checked', new_val).change; end
+	  def checked=(new_val)
+		obtain.attr('checked', new_val).change if checked? ^ new_val
+	  end
 	end
 
 	class Button < JQueryAccessibleField
