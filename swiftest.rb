@@ -59,7 +59,7 @@ class Swiftest
 	@id = (descriptor/"application > id").text
 	@content_file = (descriptor/"application > initialWindow > content").inner_html
 
-	@expected_alerts, @expected_confirms, @expected_prompts = [], [], []
+	@expected_alerts, @expected_confirms, @expected_prompts, @expected_navigates = [], [], [], []
   end
 
   # Bootstrap the application.
@@ -225,7 +225,7 @@ class Swiftest
 	r = eval(recv_str)
 
 	if confirms_or_alerts
-	  alerts, confirms, prompts = send_command "acp-state"
+	  alerts, confirms, prompts, navigates = send_command "acp-state"
 
 	  while alerts.length > 0
 		raise "Unexpected alert #{alerts[0]}" if @expected_alerts.length.zero?
@@ -250,7 +250,15 @@ class Swiftest
 		@expected_prompts[0].hit!
 		@expected_prompts.shift
 	  end
-	end
+
+	  while navigates.length > 0
+	    raise "Unexpected navigateToUrl #{navigates[0]}" if @expected_navigates.length.zero?
+	    raise "Unexpected navigateToUrl #{navigates[0]}" unless @expected_navigates[0].regexp === navigates[0]
+	    navigates.shift
+	    @expected_navigates[0].hit!
+	    @expected_navigates.shift
+	    end
+	  end
 
 	r
   end
@@ -360,6 +368,21 @@ class Swiftest
   def soft_expect_prompt match, reply, &b
 	expect_prompt match, reply, true, &b
   end
+
+	def expect_navigate match, soft=false, &b
+	ue = UniqueExpect.new(match)
+	@expected_navigates << ue
+	b.call ->{ue.hit?}
+
+	if @expected_navigates[-1] == ue
+		raise "Expected navigateToUrl #{match.inspect} didn't occur!" unless soft
+	end
+	end
+
+	def soft_expect_navigate match, &b
+	expect_navigate match, true, &b
+	end
+
 end
 
 # vim: set sw=2:

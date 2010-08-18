@@ -106,6 +106,12 @@ top.Swiftest = function() {
 	return reply;
   }
 
+  top.Swiftest.navigates = [];
+  top.air.navigateToURL = function(urlrequest) {
+	  top.air.trace("Swiftest: caught navigateToURL to " + urlrequest.url);
+	  top.Swiftest.navigates.push(urlrequest.url);
+  }
+
   var state_fncall_db = [];
   var redefined_builtins = false;
 
@@ -232,10 +238,11 @@ top.Swiftest = function() {
 	  return [current, state_fncall_db.length - 1];
 	},
 	'acp-state': function() {
-	  var rval = [top.Swiftest.alerts, top.Swiftest.confirms, top.Swiftest.prompts];
+	  var rval = [top.Swiftest.alerts, top.Swiftest.confirms, top.Swiftest.prompts, top.Swiftest.navigates];
 	  top.Swiftest.alerts = [];
 	  top.Swiftest.confirms = [];
 	  top.Swiftest.prompts = [];
+	  top.Swiftest.navigates = [];
 	  return rval;
 	},
 	'set-confirm-reply': function(reply) {
