@@ -106,11 +106,11 @@ top.Swiftest = function() {
 	return reply;
   }
 
-	top.Swiftest.navigates = [];
-	top.air.navigateToURL = function(urlrequest) {
-	  top.air.trace("Swiftest: caught navigateToURL to " + urlrequest.url);
-	  top.Swiftest.navigates.push(urlrequest.url);
-	}
+  top.Swiftest.navigates = [];
+  top.air.navigateToURL = function(urlrequest) {
+	top.air.trace("Swiftest: caught navigateToURL to " + urlrequest.url);
+	top.Swiftest.navigates.push(urlrequest.url);
+  }
 
   var state_fncall_db = [];
   var redefined_builtins = false;
@@ -175,7 +175,7 @@ top.Swiftest = function() {
 	  }
 
 	  send_bool(success);
-	  send_bool(top.Swiftest.alerts.length > 0 || top.Swiftest.confirms.length > 0);
+	  send_bool(top.Swiftest.alerts.length > 0 || top.Swiftest.confirms.length > 0 || top.Swiftest.prompts.length > 0 || top.Swiftest.navigates.length > 0);
 	  send_str(ruby_escape(result));
 	  flush();
 	},
