@@ -106,11 +106,11 @@ top.Swiftest = function() {
 	return reply;
   }
 
-  top.Swiftest.navigates = [];
-  top.air.navigateToURL = function(urlrequest) {
+	top.Swiftest.navigates = [];
+	top.air.navigateToURL = function(urlrequest) {
 	  top.air.trace("Swiftest: caught navigateToURL to " + urlrequest.url);
 	  top.Swiftest.navigates.push(urlrequest.url);
-  }
+	}
 
   var state_fncall_db = [];
   var redefined_builtins = false;
