@@ -241,6 +241,7 @@ class SwiftestScreen
 	  def height; obtain.height; end
 	  def width; obtain.width; end
 	  def tag; dom_node.tagName.downcase; end
+		def has_class?(val); obtain.hasClass(val); end
 
 	  def keydown(which, shift=false)
 		e = top.jQuery.Event("keydown")
@@ -324,8 +325,12 @@ class SwiftestScreen
 	  def value; obtain.val; end
 	  def value=(new_val); obtain.val(new_val).change; end
 
+		def	value_text
+			obtain.find("option[value=\"#{obtain.val}\"]").text		
+		end
+
 	  def choose(val)
-		self.value = obtain.find("option[text='#{val.gsub("'", "\\'")}']").val
+			self.value = obtain.find("option[text='#{val.gsub("'", "\\'")}']").val
 	  end
 	end
 
@@ -484,7 +489,7 @@ class SwiftestScreen
   end
 
   def self.screens
-	@@screens
+		@@screens
   end
 
   # locate runs this screen's element locator, then uses
