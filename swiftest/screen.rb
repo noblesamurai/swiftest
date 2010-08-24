@@ -211,6 +211,7 @@ class SwiftestScreen
 		raise "I wasn't declared as an array!"
 	  end
 
+	  def jquery_object; obtain; end
 	  def dom_node(index=0); obtain.get(index); end
 
 	  def length; obtain.length; end
