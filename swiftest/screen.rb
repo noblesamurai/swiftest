@@ -560,6 +560,10 @@ class SwiftestWindowScreen < SwiftestScreen
 	raise "SwiftestWindowScreen#element_locate given non-nil base" unless base.nil?
 	top.jQuery(document).find(selector)
   end
+
+  def visible?
+	!top.jQuery(document).find(":visible").length.zero?
+  end
 end
 
 # vim: set sw=2:
