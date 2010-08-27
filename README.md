@@ -244,13 +244,14 @@ Toy around with it, and use more evals and blocks.
 
 ## contributors
 
- - [Arlen Cuss](http://github.com/celtic)
- - [Daniel Assange](http://github.com/lumifish)
+ - [Arlen Cuss](http://github.com/celtic) with [Noble Samurai](http://github.com/noblesamurai)
+ - [Daniel Assange](http://github.com/lumifish) with [Noble Samurai](http://github.com/noblesamurai)
+ - [Julian Thatcher](http://github.com/DaedalusRaistlin) with [Noble Samurai](http://github.com/noblesamurai)
  - You?
 
 ## license
 
-Copyright 2010 Arlen Cuss, Daniel Assange
+Copyright 2010 Noble Samurai
 
 Swiftest is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
