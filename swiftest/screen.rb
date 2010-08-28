@@ -235,6 +235,9 @@ class SwiftestScreen
 	  def click; obtain.click; end
 	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
+		def change; obtain.change; end
+		def trigger(*args); obtain.trigger(*args); end
+		def find(*args); obtain.find(*args); end
 	  def absolute_position
 		off = obtain.offset
 		[off.left, off.top]
@@ -297,7 +300,10 @@ class SwiftestScreen
 	  end
 	end
 
-	class Dialog < JQueryAccessibleField; @klass_description = "dialog"; end
+	class Dialog < JQueryAccessibleField
+		@klass_description = "dialog"
+	end
+
 	class Subscreen < JQueryAccessibleField; @klass_description = "subscreen"; end
 	
 	class TextField < JQueryAccessibleField
@@ -562,7 +568,7 @@ class SwiftestWindowScreen < SwiftestScreen
   end
 
   def visible?
-	!top.jQuery(document).find(":visible").length.zero?
+		(document ? !top.jQuery(document).find(":visible").length.zero? : false)
   end
 end
 
