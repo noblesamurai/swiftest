@@ -333,7 +333,7 @@ class SwiftestScreen
 	  def value=(new_val); obtain.val(new_val).change; end
 
 		def	value_text
-			obtain.find("option[value=\"#{obtain.val}\"]").text		
+			obtain.find("option[value=\"#{obtain.val}\"]").eq(0).text
 		end
 
 	  def choose(val)
