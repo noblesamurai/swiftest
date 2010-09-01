@@ -59,7 +59,7 @@ class Swiftest
 	@id = (descriptor/"application > id").text
 	@content_file = (descriptor/"application > initialWindow > content").inner_html
 
-	@expected_alerts, @expected_confirms, @expected_prompts, @expected_navigates = [], [], [], []
+	@expected_alerts, @expected_confirms, @expected_prompts, @expected_navigates, @expected_browseDialogs = [], [], [], [], []
   end
 
   # Bootstrap the application.
@@ -129,7 +129,7 @@ class Swiftest
 	  @stdlog = ''
 
 	  # Start a thread to pipe through output from adl
-	  @reader_thread = Thread.start do 
+	  @reader_thread = Thread.start do
 		begin
 		  data_ok = true
 
@@ -225,7 +225,7 @@ class Swiftest
 	r = eval(recv_str)
 
 	if confirms_or_alerts
-	  alerts, confirms, prompts, navigates = send_command "acp-state"
+	  alerts, confirms, prompts, navigates, browseDialogs = send_command "acp-state"
 
 	  while alerts.length > 0
 		raise "Unexpected alert #{alerts[0]}" if @expected_alerts.length.zero?
@@ -257,6 +257,14 @@ class Swiftest
 		  navigates.shift
 		  @expected_navigates[0].hit!
 		  @expected_navigates.shift
+	  end
+
+	  while browseDialogs.length > 0
+		  raise "Unexpected browseDialog #{browseDialogs[0]}" if @expected_browseDialogs.length.zero?
+		  raise "Unexpected browseDialog #{browseDialogs[0]}" unless @expected_browseDialogs[0].regexp === browseDialogs[0]
+		  browseDialogs.shift
+		  @expected_browseDialogs[0].hit!
+		  @expected_browseDialogs.shift
 	  end
 	end
 
@@ -367,6 +375,26 @@ class Swiftest
 
   def soft_expect_prompt match, reply, &b
 	expect_prompt match, reply, true, &b
+  end
+
+  def expect_browseDialog match, reply, file, soft=false, &b
+	  ue = UniqueExpect.new(match)
+	  @expected_browseDialogs << ue
+	  restore_dr = send_command("set-browsedialog-reply", reply);
+	  restore_file = send_command("set-browsedialog-file", file);
+	  b.call ->{ue.hit?}
+
+	  if @expected_browseDialogs[-1] == ue
+		  raise "Expected browseDialog #{match.inspect} didn't occur!" unless soft
+		  @expected_browseDialogs.pop
+	  end
+
+	  send_command "set-browsedialog-reply", restore_dr
+	  send_command "set-browsedialog-file", restore_file
+  end
+
+  def soft_expect_browseDialog match, reply, file, &b
+	  expect_browseDialog match, reply, true, &b
   end
 
 	def expect_navigate match, soft=false, &b
