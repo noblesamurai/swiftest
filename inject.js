@@ -112,6 +112,57 @@ top.Swiftest = function() {
 	top.Swiftest.navigates.push(urlrequest.url);
   }
 
+  /* JT: This is fairly specific, but the only way I can override File.browseFor(...)
+   * To use it, copy the reference below, replace the Swiftest-specific code with:
+   *    // Add listeners for what was provided
+   *    var events = [ air.Event.SELECT, air.Event.CANCEL ];
+   *    for (var i in events) {
+   *      file.addEventListener(events[i], listeners[i]);
+   *    }
+   *    file[type].apply(file, fn_args);
+   *  and use top.browseForSave(file, title, selectEventListener, cancelEventListener);
+   */
+  top.Swiftest.browseDialogFile = "";
+  top.Swiftest.browseDialogReply = "::CANCEL::";
+  top.Swiftest.browseDialogs = [];
+  var browseTypes = {
+	browseForDirectory: [ "title" ],
+	browseForOpen: [ "title", "typeFilter" ],   // typeFilter is optional
+	browseForSave: [ "title" ]
+  };
+  for (var type in browseTypes) {
+	if (top[type]) {
+	  top[type] = function(/* file, parameters[, ...] , SELECT listener, CANCEL listener */) {
+		  top.air.trace("Swiftest: caught File." + type);
+		  var file = Array.prototype.shift.call(arguments);
+		  // Get the listeners first, and whatever is left will be the arguments to pass through
+		  var listeners = Array.prototype.splice.call(arguments, arguments.length - 2, 2);
+		  var fn_args = Array.prototype.slice.call(arguments);
+
+		  var listener = top.Swiftest.browseDialogReply;
+		  var file = undefined;
+
+          if (listener == "::SELECT::") {
+			top.air.trace("Swiftest: Causing SELECT event with file " + top.Swiftest.browseDialogFile);
+			listener = listeners[0];
+			file = { target: new top.air.File('file:///' + top.Swiftest.browseDialogFile) };
+          } else if (event == "::CANCEL::") {
+			top.air.trace("Swiftest: Causing CANCEL event");
+			listener = listeners[1];
+		  } else
+			throw new Error("Unknown event type '" + event + "' for " + type);
+
+		  top.air.trace("Pushing browseDialog");
+		  // JT: Todo, make this push an object specifying type of dialog, not just title
+		  top.Swiftest.browseDialogs.push(fn_args[0]);
+		  top.air.trace("Calling listener " + listener);
+		  listener(file);
+	  }
+	}
+  };
+
+
+
   var state_fncall_db = [];
   var redefined_builtins = false;
 
@@ -175,7 +226,7 @@ top.Swiftest = function() {
 	  }
 
 	  send_bool(success);
-	  send_bool(top.Swiftest.alerts.length > 0 || top.Swiftest.confirms.length > 0 || top.Swiftest.prompts.length > 0 || top.Swiftest.navigates.length > 0);
+	  send_bool(top.Swiftest.alerts.length > 0 || top.Swiftest.confirms.length > 0 || top.Swiftest.prompts.length > 0 || top.Swiftest.navigates.length > 0 || top.Swiftest.browseDialogs.length > 0);
 	  send_str(ruby_escape(result));
 	  flush();
 	},
@@ -238,11 +289,12 @@ top.Swiftest = function() {
 	  return [current, state_fncall_db.length - 1];
 	},
 	'acp-state': function() {
-	  var rval = [top.Swiftest.alerts, top.Swiftest.confirms, top.Swiftest.prompts, top.Swiftest.navigates];
+	  var rval = [top.Swiftest.alerts, top.Swiftest.confirms, top.Swiftest.prompts, top.Swiftest.navigates, top.Swiftest.browseDialogs];
 	  top.Swiftest.alerts = [];
 	  top.Swiftest.confirms = [];
 	  top.Swiftest.prompts = [];
 	  top.Swiftest.navigates = [];
+	  top.Swiftest.browseDialogs = [];
 	  return rval;
 	},
 	'set-confirm-reply': function(reply) {
@@ -254,6 +306,18 @@ top.Swiftest = function() {
 	  var oldPr = top.Swiftest.promptReply;
 	  top.Swiftest.promptReply = reply;
 	  return oldPr;
+	},
+	'set-browsedialog-reply' : function(reply) {
+	  var oldDr = top.Swiftest.browseDialogReply;
+	  top.air.trace('set-browsedialog-reply: ' + reply);
+	  top.Swiftest.browseDialogReply = reply;
+      return oldDr;
+    },
+	'set-browsedialog-file' : function(file) {
+	  var oldFile = top.Swiftest.browseDialogFile;
+	  top.air.trace('set-browsedialog-file: ' + file);
+	  top.Swiftest.browseDialogFile = file;
+      return oldFile;
 	},
 	'noop': function() {
 	  return 42;
