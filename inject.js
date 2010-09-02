@@ -116,7 +116,7 @@ top.Swiftest = function() {
    * To use it, copy the reference below, replace the Swiftest-specific code with:
    *    // Add listeners for what was provided
    *    var events = [ air.Event.SELECT, air.Event.CANCEL ];
-   *    for (var i in events) {
+   *    for (var i in listeners) {
    *      file.addEventListener(events[i], listeners[i]);
    *    }
    *    file[type].apply(file, fn_args);
@@ -125,28 +125,35 @@ top.Swiftest = function() {
   top.Swiftest.browseDialogFile = "";
   top.Swiftest.browseDialogReply = "::CANCEL::";
   top.Swiftest.browseDialogs = [];
-  var browseTypes = {
-	browseForDirectory: [ "title" ],
-	browseForOpen: [ "title", "typeFilter" ],   // typeFilter is optional
-	browseForSave: [ "title" ]
-  };
-  for (var type in browseTypes) {
-	if (top[type]) {
-	  top[type] = function(/* file, parameters[, ...] , SELECT listener, CANCEL listener */) {
-		  top.air.trace("Swiftest: caught File." + type);
-		  var file = Array.prototype.shift.call(arguments);
-		  // Get the listeners first, and whatever is left will be the arguments to pass through
-		  var listeners = Array.prototype.splice.call(arguments, arguments.length - 2, 2);
-		  var fn_args = Array.prototype.slice.call(arguments);
+  var browseTypes = [ "browseForDirectory", "browseForOpen", "browseForSave" ];
+  for (var i in browseTypes) {
+    var _type = browseTypes[i];
+    if (top[_type]) {
+      top[_type] = function(type) {
+        return function() {
+		  top.air.trace("Swiftest: Caught File." + type);
+		  // Make it easier to work with arguments
+		  var args = Array.prototype.slice.call(arguments);
+		  var file = args.shift();
+		  // Anything up until type function is an argument
+		  var fn_args = [];
+		  var listeners = [];
+		  while (args.length > 0) {
+			  if (typeof args[0] == 'function') break;
+			  fn_args.push(args.shift());
+		  }
+		  while (args.length > 0) {
+			  listeners.push(args.shift());
+		  }
 
 		  var listener = top.Swiftest.browseDialogReply;
 		  var file = undefined;
 
-          if (listener == "::SELECT::") {
+		  if (listener == "::SELECT::") {
 			top.air.trace("Swiftest: Causing SELECT event with file " + top.Swiftest.browseDialogFile);
 			listener = listeners[0];
 			file = { target: new top.air.File('file:///' + top.Swiftest.browseDialogFile) };
-          } else if (event == "::CANCEL::") {
+		  } else if (event == "::CANCEL::") {
 			top.air.trace("Swiftest: Causing CANCEL event");
 			listener = listeners[1];
 		  } else
@@ -157,11 +164,10 @@ top.Swiftest = function() {
 		  top.Swiftest.browseDialogs.push(fn_args[0]);
 		  top.air.trace("Calling listener " + listener);
 		  listener(file);
-	  }
+        }
+	  }(_type);
 	}
   };
-
-
 
   var state_fncall_db = [];
   var redefined_builtins = false;
