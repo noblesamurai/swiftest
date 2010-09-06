@@ -145,23 +145,22 @@ top.Swiftest = function() {
 			  listeners.push(args.shift());
 		  }
 
-		  var listener, file, type;
+		  var listener, file, name;
 
 		  if (top.Swiftest.browseDialogFile != null) {
 			top.air.trace("Swiftest: Causing SELECT event with file " + top.Swiftest.browseDialogFile);
 			listener = listeners[0];
 			file = { target: new top.air.File('file:///' + top.Swiftest.browseDialogFile) };
-			type = 'select';
-		  } else if (event == "::CANCEL::") {
+			name = 'select';
+		  } else {
 			top.air.trace("Swiftest: Causing CANCEL event");
 			listener = listeners[1];
-			type = 'cancel';
-		  } else
-			throw new Error("Unknown event type '" + event + "' for " + type);
+			name = 'cancel';
+		  } 
 
 		  // No listener for this event
 		  if (!listener) {
-			top.air.trace("Swiftest: No listener for event " + type);
+			top.air.trace("Swiftest: No listener for event " + name);
 			return;
 		  }
 
