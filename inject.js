@@ -123,7 +123,6 @@ top.Swiftest = function() {
    *  and use top.browseForSave(file, title, selectEventListener, cancelEventListener);
    */
   top.Swiftest.browseDialogFile = "";
-  top.Swiftest.browseDialogReply = "::CANCEL::";
   top.Swiftest.browseDialogs = [];
   var browseTypes = [ "browseForDirectory", "browseForOpen", "browseForSave" ];
   for (var i in browseTypes) {
@@ -146,18 +145,25 @@ top.Swiftest = function() {
 			  listeners.push(args.shift());
 		  }
 
-		  var listener = top.Swiftest.browseDialogReply;
-		  var file = undefined;
+		  var listener, file, type;
 
-		  if (listener == "::SELECT::") {
+		  if (top.Swiftest.browseDialogFile != null) {
 			top.air.trace("Swiftest: Causing SELECT event with file " + top.Swiftest.browseDialogFile);
 			listener = listeners[0];
 			file = { target: new top.air.File('file:///' + top.Swiftest.browseDialogFile) };
+			type = 'select';
 		  } else if (event == "::CANCEL::") {
 			top.air.trace("Swiftest: Causing CANCEL event");
 			listener = listeners[1];
+			type = 'cancel';
 		  } else
 			throw new Error("Unknown event type '" + event + "' for " + type);
+
+		  // No listener for this event
+		  if (!listener) {
+			top.air.trace("Swiftest: No listener for event " + type);
+			return;
+		  }
 
 		  top.air.trace("Pushing browseDialog");
 		  // JT: Todo, make this push an object specifying type of dialog, not just title
@@ -313,12 +319,6 @@ top.Swiftest = function() {
 	  top.Swiftest.promptReply = reply;
 	  return oldPr;
 	},
-	'set-browsedialog-reply' : function(reply) {
-	  var oldDr = top.Swiftest.browseDialogReply;
-	  top.air.trace('set-browsedialog-reply: ' + reply);
-	  top.Swiftest.browseDialogReply = reply;
-      return oldDr;
-    },
 	'set-browsedialog-file' : function(file) {
 	  var oldFile = top.Swiftest.browseDialogFile;
 	  top.air.trace('set-browsedialog-file: ' + file);

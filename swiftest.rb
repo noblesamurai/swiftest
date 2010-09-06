@@ -377,10 +377,9 @@ class Swiftest
 	expect_prompt match, reply, true, &b
   end
 
-  def expect_browseDialog match, reply, file, soft=false, &b
+  def expect_browseDialog match, file, soft=false, &b
 	  ue = UniqueExpect.new(match)
 	  @expected_browseDialogs << ue
-	  restore_dr = send_command("set-browsedialog-reply", reply);
 	  restore_file = send_command("set-browsedialog-file", file);
 	  b.call ->{ue.hit?}
 
@@ -389,12 +388,11 @@ class Swiftest
 		  @expected_browseDialogs.pop
 	  end
 
-	  send_command "set-browsedialog-reply", restore_dr
 	  send_command "set-browsedialog-file", restore_file
   end
 
-  def soft_expect_browseDialog match, reply, file, &b
-	  expect_browseDialog match, reply, true, &b
+  def soft_expect_browseDialog match, file, &b
+	  expect_browseDialog match, file, true, &b
   end
 
 	def expect_navigate match, soft=false, &b
