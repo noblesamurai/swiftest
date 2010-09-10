@@ -327,6 +327,10 @@ top.Swiftest = function() {
 	'noop': function() {
 	  return 42;
 	},
+	'get-clipboard' : function(format) {
+		format = format || top.air.ClipboardFormats.TEXT_FORMAT;
+		return air.Clipboard.generalClipboard.getData(format) || null;
+	},
   };
 
   function expect_int() {
