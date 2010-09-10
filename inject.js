@@ -83,6 +83,13 @@ top.Swiftest = function() {
 	top.Swiftest.alerts.push(msg);
   }
 
+  if (top.ns && top.ns.modalDialog) {
+    top.ns.modalDialog = function(message, title) {
+      top.air.trace("Swiftest: caught modal dialog: " + message);
+      top.Swiftest.alerts.push(message);
+    }
+  }
+
   top.Swiftest.confirmReply = true;
   top.Swiftest.confirms = [];
   top.confirm = function(msg) {
