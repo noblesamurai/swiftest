@@ -344,8 +344,8 @@ class SwiftestScreen
 	class TextArea < JQueryAccessibleField
 	  @klass_description = "text area"
 
-	  def value; obtain.text; end
-	  def value=(new_val); obtain.text(new_val).change; end
+	  def value; obtain.val; end
+	  def value=(new_val); obtain.val(new_val).change; end
 	end
 
 	class HTMLArea < JQueryAccessibleField
