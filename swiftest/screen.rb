@@ -183,7 +183,7 @@ class SwiftestScreen
 	  end
 
 	  def [](attr)
-		@obtainer.call.attr(attr)
+		@obtainer.call.attr(attr).force_encoding('utf-8')
 	  end
 
 	  def []=(attr, val)
