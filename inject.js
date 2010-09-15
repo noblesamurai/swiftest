@@ -364,8 +364,11 @@ top.Swiftest = function() {
   }
 
   function send_str(str) {
-	send_int(str.length);
-	socket.writeUTFBytes(str);
+	var bytearr = new flash.utils.ByteArray();
+	bytearr.writeUTFBytes(str);
+
+	send_int(bytearr.length);
+	socket.writeBytes(bytearr);
   }
 
   function flush() {

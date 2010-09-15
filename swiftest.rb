@@ -222,7 +222,13 @@ class Swiftest
 
 	raise JavascriptError, recv_str unless success
 
-	r = eval(recv_str)
+	begin
+	  js = recv_str
+	  r = eval(js)
+	rescue SyntaxError => e
+	  STDERR.puts "got a syntax error while evaling #{js.inspect}"
+	  raise
+	end
 
 	if confirms_or_alerts
 	  alerts, confirms, prompts, navigates, browseDialogs = send_command "acp-state"
