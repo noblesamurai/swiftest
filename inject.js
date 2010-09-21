@@ -262,7 +262,7 @@ top.Swiftest = function() {
 	  fn = fn.substr(0, fn.length - 1);
 	  target[fn] = args[0];
 	  return target[fn];
-	} else if (typeof target[fn] != "function" && args.length == 0) {
+	} else if ((typeof target[fn] != "function" || target[fn].apply === undefined) && args.length == 0) {
 	  return target[fn];
 	} else if (typeof target[fn] == "function" && args.length == 0
 		&& (
@@ -278,6 +278,10 @@ top.Swiftest = function() {
 	  if (target[fn] === undefined) {
 		throw new Error("trying to call " + target + "." + fn + ", which is undefined");
 	  }
+	  if (target[fn].apply === undefined) {
+		throw new Error("target[fn].apply is undefined, yet we have type (" + typeof(target[fn]) + ") and args (" + args.length + ")");
+	  }
+
 	  return target[fn].apply(target, args);
 	}
   }

@@ -357,7 +357,21 @@ class SwiftestScreen
 	  def html; obtain.html; end
 	  def html=(new_val); obtain.html(new_val).change; end
 
-	  def select_text(text)
+	  def focus
+		super
+		node = obtain.find("p").get(0)
+		node = obtain.get(0) if !node
+
+		range = node.ownerDocument.createRange
+		range.setStart(node, 0)
+		range.setEnd(node, 0)
+
+		sel = top.window.getSelection
+		sel.removeAllRanges
+		sel.addRange(range)
+	  end
+
+	  def select_text(text, endextend=true)
 		node = obtain.find(":contains(#{text.inspect})").get(0)
 		node = obtain.parent.find(":contains(#{text.inspect})").get(0) if node.nil?
 
@@ -375,17 +389,21 @@ class SwiftestScreen
 
 		range = node.ownerDocument.createRange
 		range.setStart(node, node_text.index(text))
-		range.setEnd(node, node_text.index(text) + text.length)
+		range.setEnd(node, node_text.index(text) + (endextend ? text.length : 0))
 
 		sel = top.window.getSelection
 		sel.removeAllRanges
 		sel.addRange(range)
 	  end
 
+	  def cursor_before(text)
+		select_text text, false
+	  end
+
 	  def selected_text
 		# TODO: verify the selection is within this node
 		dom_node.ownerDocument.getSelection.toString
-	   end
+	  end
 
 	  def select_p_containing(text)
 		node = obtain.find("p:contains(#{text.inspect})").get(0).firstChild
