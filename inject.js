@@ -338,6 +338,10 @@ top.Swiftest = function() {
 		format = format || top.air.ClipboardFormats.TEXT_FORMAT;
 		return air.Clipboard.generalClipboard.getData(format) || null;
 	},
+	'set-clipboard': function(text, format) {
+		format = format || top.air.ClipboardFormats.TEXT_FORMAT;
+		return air.Clipboard.generalClipboard.setData(format, text);
+	}
   };
 
   function expect_int() {
