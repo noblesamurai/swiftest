@@ -310,6 +310,13 @@ top.Swiftest = function() {
 	  state_fncall_db.push(current);
 	  return [current, state_fncall_db.length - 1];
 	},
+	'state-getprop': function(state, prop) {
+	  var current = (state === false) ? top : get_back_ref(state);
+	  current = current[prop];
+
+	  state_fncall_db.push(current);
+	  return [current, state_fncall_db.length - 1];
+	},
 	'acp-state': function() {
 	  var rval = [top.Swiftest.alerts, top.Swiftest.confirms, top.Swiftest.prompts, top.Swiftest.navigates, top.Swiftest.browseDialogs];
 	  top.Swiftest.alerts = [];

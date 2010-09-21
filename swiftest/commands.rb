@@ -51,29 +51,46 @@ module SwiftestCommands
   # (without which, anything involving semi-complex objects whose
   # state changes would fail)
   module StateFnCall
+
+	def proxify(result, state)
+	  # Basic types don't need proxying, since they're not going to
+	  # hide anything useful in JavaScript that needs re-referencing.
+	  unless [Numeric, String, TrueClass, FalseClass, NilClass].any? {|c| c === result}
+			class << result
+				include StateFnCall
+			end
+
+			# Copy the swiftest object along, as well as the state for
+			# this object.
+			result.swiftest = @swiftest
+			result.statefncall = state
+	  end
+	end
+
 	def method_missing sym, *args
 	  # Send our request (function/object name, arguments) and state 
 	  # from last time.
 	  $swiftest_calls ||= Hash.new(0)
 	  $swiftest_calls[sym] += 1
-	  
+
 	  result, state = @swiftest.send_command("state-fncall", @statefncall, sym, *args)
 
-	  # Basic types don't need proxying, since they're not going to
-	  # hide anything useful in JavaScript that needs re-referencing.
-	  unless [Numeric, String, TrueClass, FalseClass, NilClass].any? {|c| c === result}
-		class << result
-		  include StateFnCall
-		end
-
-		# Copy the swiftest object along, as well as the state for
-		# this object.
-		result.swiftest = @swiftest
-		result.statefncall = state
-	  end
+		proxify(result, state)
 
 	  # Return the new object, possibly proxified with state preserved.
 	  result
+	end
+
+	# Retrieves a property raw instead of calling it as a function.
+	def prop(sym)
+	  $swiftest_calls ||= Hash.new(0)
+	  $swiftest_calls[sym] += 1
+
+		result, state = @swiftest.send_command("state-getprop", @statefncall, sym)
+
+		proxify(result, state)
+
+		result
 	end
 
 	attr_accessor :statefncall
