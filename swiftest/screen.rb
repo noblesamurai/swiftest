@@ -230,8 +230,9 @@ class SwiftestScreen
 	  def enabled=(val); disabled = !val; end
 	  def disabled?; attrs["disabled"]; end
 	  def disabled=(val); attrs["disabled"] = val; end
-	  def text; obtain.text; end
-	  def html; obtain.html; end
+	  def text; obtain.text.force_encoding('utf-8'); end
+	  def html; obtain.html.force_encoding('utf-8'); end
+	  def html=(new_val); obtain.html(new_val).change; end
 	  def click; obtain.click; end
 	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
@@ -309,7 +310,7 @@ class SwiftestScreen
 	class TextField < JQueryAccessibleField
 	  @klass_description = "text field"
 
-	  def value; obtain.val; end 
+	  def value; obtain.val.force_encoding('utf-8'); end 
 	  def value=(new_val); obtain.val(new_val).change; end
 	end
 
@@ -329,11 +330,11 @@ class SwiftestScreen
 	class SelectBox < JQueryAccessibleField
 	  @klass_description = "select box"
 
-	  def value; obtain.val; end
+	  def value; obtain.val.force_encoding('utf-8'); end
 	  def value=(new_val); obtain.val(new_val).change; end
 
 		def	value_text
-			obtain.find("option[value=\"#{obtain.val}\"]").eq(0).text
+			obtain.find("option[value=\"#{obtain.val}\"]").eq(0).text.force_encoding('utf-8')
 		end
 
 	  def choose(val)
@@ -344,18 +345,15 @@ class SwiftestScreen
 	class TextArea < JQueryAccessibleField
 	  @klass_description = "text area"
 
-	  def value; obtain.val; end
+	  def value; obtain.val.force_encoding('utf-8'); end
 	  def value=(new_val); obtain.val(new_val).change; end
 	end
 
 	class HTMLArea < JQueryAccessibleField
 	  @klass_description = "rich-text editor"
 
-	  def value; obtain.text; end
+	  def value; obtain.text.force_encoding('utf-8'); end
 	  def value=(new_val); obtain.text(new_val).change; end
-
-	  def html; obtain.html; end
-	  def html=(new_val); obtain.html(new_val).change; end
 
 	  def focus
 		super
