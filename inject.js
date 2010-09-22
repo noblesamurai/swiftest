@@ -152,12 +152,13 @@ top.Swiftest = function() {
 			  listeners.push(args.shift());
 		  }
 
-		  var listener, file, name;
+		  var listener, event, name;
 
 		  if (top.Swiftest.browseDialogFile != null) {
 			top.air.trace("Swiftest: Causing SELECT event with file " + top.Swiftest.browseDialogFile);
 			listener = listeners[0];
-			file = { target: new top.air.File('file:///' + top.Swiftest.browseDialogFile) };
+			file.url = 'file:///' + top.Swiftest.browseDialogFile;
+			event = { target: new top.air.File(file.url) };
 			name = 'select';
 		  } else {
 			top.air.trace("Swiftest: Causing CANCEL event");
@@ -175,7 +176,7 @@ top.Swiftest = function() {
 		  // JT: Todo, make this push an object specifying type of dialog, not just title
 		  top.Swiftest.browseDialogs.push(fn_args[0]);
 		  top.air.trace("Calling listener " + listener);
-		  listener(file);
+		  listener(event);
         }
 	  }(_type);
 	}
