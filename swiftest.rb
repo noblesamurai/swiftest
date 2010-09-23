@@ -251,7 +251,7 @@ class Swiftest
 
 	  while prompts.length > 0
 		raise "Unexpected prompt #{prompts[0]}" if @expected_prompts.length.zero?
-		raise "Unexpected prompt #{prompts[0]}" unless @expected_prompts[0].regexp === prompts[0]
+		raise "Expected prompt #{@expected_prompts[0].regexp}, but received #{prompts[0]}" unless @expected_prompts[0].regexp === prompts[0]
 		prompts.shift
 		@expected_prompts[0].hit!
 		@expected_prompts.shift
@@ -259,7 +259,7 @@ class Swiftest
 
 	  while navigates.length > 0
 		raise "Unexpected navigateToUrl #{navigates[0]}" if @expected_navigates.length.zero?
-		raise "Unexpected navigateToUrl #{navigates[0]}" unless @expected_navigates[0].regexp === navigates[0]
+		raise "Expected navigateToUrl #{@expected_navigates[0].regexp}, but received #{navigates[0]}" unless @expected_navigates[0].regexp === navigates[0]
 		navigates.shift
 		@expected_navigates[0].hit!
 		@expected_navigates.shift
@@ -267,7 +267,7 @@ class Swiftest
 
 	  while browseDialogs.length > 0
 		raise "Unexpected browseDialog #{browseDialogs[0]}" if @expected_browseDialogs.length.zero?
-		raise "Unexpected browseDialog #{browseDialogs[0]}" unless @expected_browseDialogs[0].regexp === browseDialogs[0]
+		raise "Expected browseDialog #{@expected_browseDialogs[0].regexp}, but received #{browseDialogs[0]}" unless @expected_browseDialogs[0].regexp === browseDialogs[0]
 		browseDialogs.shift
 		@expected_browseDialogs[0].hit!
 		@expected_browseDialogs.shift
