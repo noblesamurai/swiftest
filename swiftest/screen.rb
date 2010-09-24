@@ -66,12 +66,18 @@ class SwiftestScreen
 	# into +link_item_class_constructor+.
 	def self.link_item_class(constructor_name, klass)
 	  class_eval <<-EOE
-		def #{constructor_name}(field_name, selector, &helper)
-		  link_item_class_constructor(#{klass}, #{constructor_name.to_s.inspect}, field_name, selector, &helper)
-		end
+		if klass.ancestors.include? FlexibleArray
+		  def #{constructor_name}(field_name, selector, &helper)
+			link_item_class_constructor(#{klass}, #{constructor_name.to_s.inspect}, field_name, selector, true, &helper)
+		  end
+		else
+		  def #{constructor_name}(field_name, selector, &helper)
+			link_item_class_constructor(#{klass}, #{constructor_name.to_s.inspect}, field_name, selector, &helper)
+		  end
 
-		def #{constructor_name}_array(field_name, selector, &helper)
-		  link_item_class_constructor(#{klass}, #{constructor_name.to_s.inspect}, field_name, selector, true, &helper)
+		  def #{constructor_name}_array(field_name, selector, &helper)
+			link_item_class_constructor(#{klass}, #{constructor_name.to_s.inspect}, field_name, selector, true, &helper)
+		  end
 		end
 	  EOE
 	end
@@ -154,13 +160,19 @@ class SwiftestScreen
 	def link_item_class_constructor klass, ctor_name, field_name, selector, array=false, &helper
 	  if not array
 		target = klass.new(@screen, selector)
-		LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
+	    LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
+	  elsif klass.ancestors.include? FlexibleArray
+		target = klass.new({}, Proc.new {|sel=selector, index|
+		  target = JQueryAccessibleField.new(@screen, sel, index)
+		  LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
+		  target
+	    })
 	  else
-		target = FlexibleArray.new({}, Proc.new {|index|
+	    target = FlexibleArray.new({}, Proc.new {|index|
 		  target = klass.new(@screen, selector, index)
 		  LinkItemHelperDescriptor.new(target).instance_eval(&helper) if helper
 		  target
-		})
+	    })
 	  end
 
 	  cta = @screen.type_arrays[ctor_name.to_sym]
