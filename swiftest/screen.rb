@@ -259,6 +259,7 @@ class SwiftestScreen
 		def change; obtain.change; end
 		def trigger(*args); obtain.trigger(*args); end
 		def find(*args); obtain.find(*args); end
+		def siblings(*args); obtain.siblings(*args); end
 	  def absolute_position
 		off = obtain.offset
 		[off.left, off.top]
