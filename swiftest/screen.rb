@@ -245,7 +245,15 @@ class SwiftestScreen
 	  def text; obtain.text.force_encoding('utf-8'); end
 	  def html; obtain.html.force_encoding('utf-8'); end
 	  def html=(new_val); obtain.html(new_val).change; end
-	  def click; obtain.click; end
+	  def click(shift=false)
+		if shift
+		  e = top.jQuery.Event("click")
+		  e.shiftKey = shift
+		  obtain.trigger(e)
+		else
+		  obtain.click
+		end
+	  end
 	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
 		def change; obtain.change; end
