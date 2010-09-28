@@ -195,7 +195,8 @@ class SwiftestScreen
 	  end
 
 	  def [](attr)
-		@obtainer.call.attr(attr).force_encoding('utf-8')
+			attr = @obtainer.call.attr(attr)
+			attr.is_a?(String) ? attr.force_encoding('utf-8') : attr
 	  end
 
 	  def []=(attr, val)
@@ -344,6 +345,10 @@ class SwiftestScreen
 	  end
 	end
 
+	class RadioButton < CheckBox
+		@klass_description = "radio button"
+	end
+
 	class Button < JQueryAccessibleField
 	  @klass_description = "button"
 	end
@@ -458,6 +463,7 @@ class SwiftestScreen
 	link_item_class :text_field, TextField
 	link_item_class :check_box, CheckBox
 	link_item_class :button, Button
+	link_item_class :radio_button, RadioButton
 	link_item_class :select_box, SelectBox
 	link_item_class :text_area, TextArea
 	link_item_class :html_area, HTMLArea
