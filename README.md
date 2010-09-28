@@ -168,7 +168,7 @@ Do it! It's easy with a bit of instance_eval magic.
 
 Let's say you have a concept in your application called 'utilities', and the user can switch between utilities by clicking buttons on the main window.  Those buttons (eventually) cause the utility to be shown in an iframe.  Here's how you could model this interaction:
 
-    UtilityBase = lambda { top.jQuery("iframe#utility").get(0).contentWindow }
+    UtilityBase = proc { top.jQuery("iframe#utility").get(0).contentWindow }
 
     def define_utility(utility_name, &block)
 	  screen = SwiftestScreen.describe_screen(utility_name) do
@@ -189,7 +189,7 @@ Let's say you have a concept in your application called 'utilities', and the use
 
 This creates a helper function, `define_utility`, which given a name like 'Finance Calculator', creates a screen object called `FinanceCalculatorUtilityScreen`.
 
-It defines a helper method called `in_frame`, which uses the _swiftest_ `resolve_base` to cause all screen objects created in its block to resolve from the base returned by the lambda given to it - in this case, `UtilityBase`, which gets the contentWindow out from an iframe with the id 'utility' on the top-level. This lambda gets evaluated at runtime.
+It defines a helper method called `in_frame`, which uses the _swiftest_ `resolve_base` to cause all screen objects created in its block to resolve from the base returned by the proc given to it - in this case, `UtilityBase`, which gets the contentWindow out from an iframe with the id 'utility' on the top-level. This proc gets evaluated at runtime.
 
 Since all utilities will be current based on a similar condition, we can also put that here if we like - in this case, they're current when the iframe is visible, and its 'src' HTML attribute is - in Finance Calculator's case - finance_calculator.html.
 

@@ -38,7 +38,7 @@ class SwiftestScreen
 	# Just defines a function on the resulting object.  Uses
 	# +define_function+, hence the resulting method unfortunately
 	# can't take blocks.
-	def method sym, &code
+	def define sym, &code
 	  @metaklass.send :define_method, sym, &code
 	end
 
@@ -282,7 +282,7 @@ class SwiftestScreen
 		top.jQuery(dom_node.ownerDocument.activeElement)
 	  end
 
-	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
+	  def attrs; @attrs ||= JQueryAttrs.new(define(:obtain)); end
 	  def top; @screen.top; end
 
 	  def each; yield self; end
