@@ -282,7 +282,7 @@ class SwiftestScreen
 		top.jQuery(dom_node.ownerDocument.activeElement)
 	  end
 
-	  def attrs; @attrs ||= JQueryAttrs.new(define(:obtain)); end
+	  def attrs; @attrs ||= JQueryAttrs.new(method(:obtain)); end
 	  def top; @screen.top; end
 
 	  def each; yield self; end
