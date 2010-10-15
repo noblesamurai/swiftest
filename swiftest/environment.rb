@@ -16,7 +16,7 @@
 require File.join(File.dirname(__FILE__), 'screen')
 
 module SwiftestEnvironment
-  wait_for_switch = 5.0
+  wait_for_switch = 20.0
 
   # To be called after all SwiftestScreen (and derived) instances
   # are set up.  Each instance is given a reference to 'top' (which
@@ -30,7 +30,7 @@ module SwiftestEnvironment
   def switch_screen(screen)
 	if not screen.current?
 	  begin
-		Timeout.timeout(5.0) do
+		Timeout.timeout(wait_for_switch) do
 		  sleep 1.0
 		  sleep 1.0 while @screen.current? if @screen
 		end
