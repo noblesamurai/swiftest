@@ -257,6 +257,7 @@ class SwiftestScreen
 	  end
 	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
+		def closest(*args); obtain.closest(*args); end
 		def change; obtain.change; end
 		def trigger(*args); obtain.trigger(*args); end
 		def find(*args); obtain.find(*args); end
