@@ -396,21 +396,33 @@ class SwiftestScreen
 		sel.addRange(range)
 	  end
 
+	  def recurse_select_nodes(text, n)
+		# TODO: generalise me (with a stop condition or something; recurse_find_node).
+		# But where does it belong?
+		return nil if n.childNodes.length.zero?
+
+		s = n.firstChild
+		st = s.nodeValue
+
+		while st.nil? or st.index(text).nil?
+		  r = recurse_select_nodes(text, s)
+		  return r if r
+		  break unless s.nextSibling
+		  s = s.nextSibling
+		  st = s.nodeValue
+		end
+
+		s if st and st.index(text)
+	  end
+
 	  def select_text(text, endextend=true)
 		node = obtain.find(":contains(#{text.inspect})").get(0)
 		node = obtain.parent.find(":contains(#{text.inspect})").get(0) if node.nil?
 
-		unless node.nil?
-		  node = node.firstChild 
-		  node_text = node.nodeValue
+		node = recurse_select_nodes(text, node) unless node.nil?
+		node_text = node.nodeValue if node
 
-		  while (node_text.nil? or node_text.index(text).nil?) and node.nextSibling
-			node = node.nextSibling
-			node_text = node.nodeValue
-		  end
-		end
-
-		raise "Text #{text.inspect} not found in node contents #{node_text.inspect}, node being #{node}" if node_text.nil? or node_text.index(text).nil? or node.nil?
+		raise "Text #{text.inspect} not found" if node.nil?
 
 		range = node.ownerDocument.createRange
 		range.setStart(node, node_text.index(text))
