@@ -81,6 +81,19 @@ module SwiftestCommands
 	  result
 	end
 
+	def self.included(into)
+		return unless into.instance_methods.include?(:[])
+
+    into.class_eval do
+      _real_element_ref = instance_method(:[])
+      define_method :[] do |*args|
+        ret = _real_element_ref.bind(self).call(*args)
+        proxify(ret, self.statefncall + 1 + self.index(ret))
+				ret
+      end
+    end
+	end
+
 	# Retrieves a property raw instead of calling it as a function.
 	def prop(sym)
 	  $swiftest_calls ||= Hash.new(0)
