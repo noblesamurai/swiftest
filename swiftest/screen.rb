@@ -289,6 +289,25 @@ class SwiftestScreen
 
 	  def each; yield self; end
 
+	  def self.recurse_find_node_with_text(text, n)
+		# TODO: generalise me (with a stop condition or something; recurse_find_node).
+		# But where does it belong?
+		return nil if n.childNodes.length.zero?
+
+		s = n.firstChild
+		st = s.nodeValue
+
+		while st.nil? or st.index(text).nil?
+		  r = recurse_find_node_with_text(text, s)
+		  return r if r
+		  break unless s.nextSibling
+		  s = s.nextSibling
+		  st = s.nodeValue
+		end
+
+		s if st and st.index(text)
+	  end
+
 	  attr_accessor :base_call
 	  attr_accessor :allow_nil
 	  attr_accessor :index
@@ -396,33 +415,18 @@ class SwiftestScreen
 		sel.addRange(range)
 	  end
 
-	  def recurse_select_nodes(text, n)
-		# TODO: generalise me (with a stop condition or something; recurse_find_node).
-		# But where does it belong?
-		return nil if n.childNodes.length.zero?
-
-		s = n.firstChild
-		st = s.nodeValue
-
-		while st.nil? or st.index(text).nil?
-		  r = recurse_select_nodes(text, s)
-		  return r if r
-		  break unless s.nextSibling
-		  s = s.nextSibling
-		  st = s.nodeValue
-		end
-
-		s if st and st.index(text)
+	  def get_text_node_containing(text)
+		node = obtain.find(":contains(#{text.inspect})").get(0)
+		node = obtain.parent.find(":contains(#{text.inspect})").get(0) if node.nil?
+		JQueryAccessibleField.recurse_find_node_with_text(text, node) unless node.nil?
 	  end
 
 	  def select_text(text, endextend=true)
-		node = obtain.find(":contains(#{text.inspect})").get(0)
-		node = obtain.parent.find(":contains(#{text.inspect})").get(0) if node.nil?
-
-		node = recurse_select_nodes(text, node) unless node.nil?
-		node_text = node.nodeValue if node
-
+		node = get_text_node_containing(text)
 		raise "Text #{text.inspect} not found" if node.nil?
+
+		node_text = node.nodeValue
+
 
 		range = node.ownerDocument.createRange
 		range.setStart(node, node_text.index(text))
