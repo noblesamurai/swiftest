@@ -317,6 +317,18 @@ class SwiftestScreen
 
 	  attr_accessor :visible_call
 
+		attr_reader :selector
+
+	  def obtain
+		loc = @screen.locate(@selector,
+							 @base_call && @screen.instance_eval(&@base_call),
+							 @allow_nil,
+							 &@disambiguator)
+		return loc unless @index
+
+		loc.eq(@index)
+	  end
+
 	  protected
 	  def element_locate(selector, base=nil)
 		if base
@@ -330,16 +342,6 @@ class SwiftestScreen
 
 	  def keytarget
 		obtain
-	  end
-
-	  def obtain
-		loc = @screen.locate(@selector,
-							 @base_call && @screen.instance_eval(&@base_call),
-							 @allow_nil,
-							 &@disambiguator)
-		return loc unless @index
-
-		loc.eq(@index)
 	  end
 	end
 

@@ -47,9 +47,6 @@ top.Swiftest = function() {
 		  if (first) first = false; else ret += ", ";
 		  ret += ruby_escape(o[key])
 		  state_fncall_db.push(o[key])
-		  if (o[key] && typeof o[key] == 'object' && o[key].title) {
-			top.air.trace(o[key].title + ": " + state_fncall_db.length);
-		  }
 		}
 		ret += "]";
 		return ret;
@@ -306,8 +303,6 @@ top.Swiftest = function() {
 	  return current;
 	},
 	'state-fncall': function(state, fn) {
-	  top.air.trace("STATE: " + state);
-	  top.air.trace("STATE: " + get_back_ref(state));
 	  // We get a variable number of arguments after state and fn -
 	  // pull out of `arguments` and drop the first two.
 	  var args = Array.prototype.slice.call(arguments, 2);
