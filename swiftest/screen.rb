@@ -255,13 +255,16 @@ class SwiftestScreen
 		  obtain.click
 		end
 	  end
+	  def mousedown
+		obtain.mousedown
+	  end
 	  def focus; obtain.focus; end
 	  def parent; obtain.parent; end
-		def closest(*args); obtain.closest(*args); end
-		def change; obtain.change; end
-		def trigger(*args); obtain.trigger(*args); end
-		def find(*args); obtain.find(*args); end
-		def siblings(*args); obtain.siblings(*args); end
+	  def closest(*args); obtain.closest(*args); end
+	  def change; obtain.change; end
+	  def trigger(*args); obtain.trigger(*args); end
+	  def find(*args); obtain.find(*args); end
+	  def siblings(*args); obtain.siblings(*args); end
 	  def absolute_position
 		off = obtain.offset
 		[off.left, off.top]
@@ -269,7 +272,7 @@ class SwiftestScreen
 	  def height; obtain.height; end
 	  def width; obtain.width; end
 	  def tag; dom_node.tagName.downcase; end
-		def has_class?(val); obtain.hasClass(val); end
+	  def has_class?(val); obtain.hasClass(val); end
 
 	  def keydown(which, shift=false)
 		e = top.jQuery.Event("keydown")
