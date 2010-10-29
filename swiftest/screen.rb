@@ -426,16 +426,32 @@ class SwiftestScreen
 		JQueryAccessibleField.recurse_find_node_with_text(text, node) unless node.nil?
 	  end
 
-	  def select_text(text, endextend=true)
+	  def select_text(text, seltype=:full)
+		focus
+
 		node = get_text_node_containing(text)
 		raise "Text #{text.inspect} not found" if node.nil?
 
 		node_text = node.nodeValue
 
-
 		range = node.ownerDocument.createRange
-		range.setStart(node, node_text.index(text))
-		range.setEnd(node, node_text.index(text) + (endextend ? text.length : 0))
+
+		case seltype
+		when :full
+		  range.setStart(node, node_text.index(text))
+		  range.setEnd(node, node_text.index(text) + text.length)
+		when :start
+		  range.setStart(node, node_text.index(text))
+		  range.setEnd(node, node_text.index(text))
+		when :end
+		  #if node_text.index(text) + text.length == node_text.length
+			#range.setStartAfter(node)
+			#range.setEndAfter(node)
+		  #else
+			range.setStart(node, node_text.index(text) + text.length)
+			range.setEnd(node, node_text.index(text) + text.length)
+		  #end
+		end
 
 		sel = top.window.getSelection
 		sel.removeAllRanges
@@ -443,7 +459,11 @@ class SwiftestScreen
 	  end
 
 	  def cursor_before(text)
-		select_text text, false
+		select_text text, :start
+	  end
+
+	  def cursor_after(text)
+		select_text text, :end
 	  end
 
 	  def selected_text
