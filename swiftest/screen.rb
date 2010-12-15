@@ -389,7 +389,9 @@ class SwiftestScreen
 		end
 
 	  def choose(val)
-			self.value = obtain.find("option[text='#{val.gsub("'", "\\'")}']").val
+		opt = obtain.find("option:contains(#{val})")
+		self.value = opt.val
+		opt.attr('selected', 'selected')
 	  end
 	end
 
