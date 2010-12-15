@@ -32,6 +32,7 @@ class Swiftest
 
   SELF_LAUNCH = ENV.include?("SWIFTEST_LAUNCH") && ENV["SWIFTEST_LAUNCH"].downcase.strip == "self"
 
+  @@fileSuffix = ""
   @@storedState = {}
   def self.newOrRecover(*args)
 	return @@storedState[args.hash] if @@storedState.keys.include? args.hash
@@ -45,6 +46,14 @@ class Swiftest
 	return nil if @@storedState.length > 1
 	return nil if @@storedState.length < 1
 	@@storedState.first[1]
+  end
+
+  def self.fileSuffix=(suffix)
+  	@@fileSuffix = suffix
+  end
+
+  def self.fileSuffix
+  	@@fileSuffix
   end
 
   def initialize(hash, descriptor_path, initial_content=nil)
@@ -80,7 +89,7 @@ class Swiftest
 	end
 	@port = @server.addr[1]
 	
-	@new_content_file = "#@content_file.swiftest.html"
+	@new_content_file = "#@content_file.swiftest#@@fileSuffix.html"
 
 	bannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "banner.png"))).gsub("\n", "")
 	rbannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "rbanner.png"))).gsub("\n", "")
@@ -113,7 +122,7 @@ class Swiftest
 	FileUtils.cp File.join(SWIFTEST_BASE, "inject.js"), File.join(@relative_dir, "inject.swiftest.js")
 
 	# Make a new copy of the descriptor to point to a new initial page.
-	@new_descriptor_file = "#@descriptor_path.swiftest.xml"
+	@new_descriptor_file = "#@descriptor_path.swiftest#@@fileSuffix.xml"
 	File.open(@new_descriptor_file, "w") do |xmlout|
 	  descriptor = Hpricot.XML(@descriptor_xml)
 	  (descriptor/"application > initialWindow > content").inner_html = @new_content_file
@@ -122,7 +131,7 @@ class Swiftest
 
 	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
 	if !SELF_LAUNCH
-	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]}")
+	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -nodebug #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]}")
 	  @started = true
 	  at_exit do stop end
 
@@ -414,7 +423,6 @@ class Swiftest
 	def soft_expect_navigate match, &b
 	  expect_navigate match, true, &b
 	end
-
 end
 
 # vim: set sw=2:
