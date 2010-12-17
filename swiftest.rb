@@ -131,7 +131,7 @@ class Swiftest
 
 	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
 	if !SELF_LAUNCH
-	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -nodebug #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]}")
+	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]}")
 	  @started = true
 	  at_exit do stop end
 
