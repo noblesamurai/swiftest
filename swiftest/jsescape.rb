@@ -17,7 +17,7 @@
 
 class String
   def javascript_escape
-	"\"#{self.gsub("\\", "\\\\\\").gsub('"', '\"').gsub("\n", "\\n")}\""
+	"\"#{self.gsub("\\", "\\\\\\").gsub('"', '\"').gsub("\r", "\\r").gsub("\t", "\\t").gsub("\n", "\\n")}\""
   end
 end
 
