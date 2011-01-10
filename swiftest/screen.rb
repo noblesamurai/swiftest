@@ -458,6 +458,8 @@ class SwiftestScreen
 		sel = top.window.getSelection
 		sel.removeAllRanges
 		sel.addRange(range)
+
+		obtain.click
 	  end
 
 	  def cursor_before(text)
