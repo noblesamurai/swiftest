@@ -137,6 +137,12 @@ class Swiftest
 
 	  @stdlog = ''
 
+	  if ENV['SWIFTEST_LOGOUT']
+		logout = File.open(ENV['SWIFTEST_LOGOUT'] + Time.now.to_i.to_s, "w")
+	  else
+		logout = STDOUT
+	  end
+
 	  # Start a thread to pipe through output from adl
 	  @reader_thread = Thread.start do
 		begin
@@ -149,7 +155,8 @@ class Swiftest
 			  data = io.readline	# rarely not line based, so this should be ok.
 			  if data
 				if ENV['SWIFTEST_LOGGING'] == 'realtime'
-				  puts data
+				  logout.puts data
+				  logout.flush
 				else
 				  @stdlog += data
 				end
@@ -165,7 +172,10 @@ class Swiftest
 		  exit
 		end
 
-		puts @stdlog if ENV['SWIFTEST_LOGGING'] == 'post'
+		if ENV['SWIFTEST_LOGGING'] == 'post'
+		  logout.puts @stdlog 
+		  logout.flush 
+		end
 
 		stop
 	  end
