@@ -177,6 +177,8 @@ class Swiftest
 		  logout.flush 
 		end
 
+		logout.close if ENV['SWIFTEST_LOGOUT']
+
 		stop
 	  end
 	end
