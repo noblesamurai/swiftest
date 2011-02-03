@@ -33,21 +33,24 @@ class Swiftest
   SELF_LAUNCH = ENV.include?("SWIFTEST_LAUNCH") && ENV["SWIFTEST_LAUNCH"].downcase.strip == "self"
 
   @@fileSuffix = ""
-  @@storedState = {}
-  def self.newOrRecover(*args)
-	puts "newOrRecover(#{args.inspect})"
+  @@storedState = nil
 
-	return @@storedState[args.hash] if @@storedState.keys.include? args.hash
+  def self.newOrRecover(*args)
+	if @@storedState
+	  return @@storedState[:swiftest] if @@storedState[:hash] == args.hash
+
+	  @@storedState[:swiftest].stop
+	  @@storedState = nil
+	end
 
 	swiftest = new(args.hash, *args)
-	@@storedState[args.hash] = swiftest
+	@@storedState = {:hash => args.hash, :swiftest => swiftest}
 	swiftest
   end
 
   def self.active
-	return nil if @@storedState.length > 1
-	return nil if @@storedState.length < 1
-	@@storedState.first[1]
+	return nil if @@storedState.nil?
+	@@storedState[:swiftest]
   end
 
   def self.fileSuffix=(suffix)
@@ -334,7 +337,7 @@ class Swiftest
 	File.unlink File.join(@relative_dir, @new_content_file) rescue true
 	File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
 
-	@@storedState.delete @hash
+	@@storedState = nil if @@storedState[:swiftest] == self
 
 	p $swiftest_calls
   end
