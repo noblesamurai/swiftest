@@ -34,22 +34,12 @@ class Swiftest
 
   @@fileSuffix = ""
   @@storedState = {}
-  @@projectFile = ""
   def self.newOrRecover(*args)
+	puts "newOrRecover(#{args.inspect})"
+
 	return @@storedState[args.hash] if @@storedState.keys.include? args.hash
 
 	swiftest = new(args.hash, *args)
-	@@projectFile = ""
-	@@storedState[args.hash] = swiftest
-	swiftest
-  end
-
-  def self.newOrRecoverWithProject(project, *args)
-p "newOrRecordWithProject #{project}"
-	return @@storedState[args.hash] if @@storedState.keys.include? args.hash
-
-	swiftest = new(args.hash, *args)
-	@@projectFile = project
 	@@storedState[args.hash] = swiftest
 	swiftest
   end
@@ -68,10 +58,11 @@ p "newOrRecordWithProject #{project}"
   	@@fileSuffix
   end
 
-  def initialize(hash, descriptor_path, initial_content=nil)
+  def initialize(hash, descriptor_path, initial_content=nil, project_file="")
 	@hash = hash
 	@descriptor_path = descriptor_path
 	@profile_file = ""
+	@project_file = project_file
 
 	@relative_dir = initial_content ? initial_content : File.dirname(@descriptor_path)
 
@@ -144,7 +135,7 @@ p "newOrRecordWithProject #{project}"
 
 	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
 	if !SELF_LAUNCH
-	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@@projectFile")
+	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file")
 	  @started = true
 	  at_exit do stop end
 
