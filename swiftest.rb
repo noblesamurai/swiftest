@@ -306,30 +306,50 @@ class Swiftest
   end
 
   def send_int int
-	@client.write int.to_s + ","
+	begin
+	  @client.write int.to_s + ","
+	rescue Errno::EPIPE
+	  exit 250
+	end
   end
 
   def send_str str
-	send_int str.length
-	@client.write str
+	begin
+	  send_int str.length
+	  @client.write str
+	rescue Errno::EPIPE
+	  exit 250
+	end
   end
 
   def recv_bool
-	@client.read(1) == "t"
+	begin
+	  @client.read(1) == "t"
+	rescue Errno::EPIPE
+	  exit 250
+	end
   end
 
   def recv_int
-	buf = ""
-	buf += @client.read(1) while buf[-1] != ?,
-	buf[0..-2].to_i
+	begin
+	  buf = ""
+	  buf += @client.read(1) while buf[-1] != ?,
+	  buf[0..-2].to_i
+	rescue Errno::EPIPE
+	  exit 250
+	end
   end
 
   def recv_str
-	len = recv_int
-	buf = ""
-	buf += @client.read(len - buf.length) while buf.length < len
+	begin
+	  len = recv_int
+	  buf = ""
+	  buf += @client.read(len - buf.length) while buf.length < len
 
-	buf
+	  buf
+	rescue Errno::EPIPE
+	  exit 250
+	end
   end
 
   def cleanup

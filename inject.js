@@ -17,7 +17,11 @@
 
 top.Swiftest = function() {
   var flash = window.runtime.flash;
-  var trace = window.runtime.trace;
+  var trace = function(s) {
+	window.runtime.trace("Swiftest: " + s);
+  };
+
+  trace("initialising ...");
 
   var insufficientDataError = new Error("Insufficient data in buffer.");
 
@@ -403,11 +407,28 @@ top.Swiftest = function() {
   $(".swiftest-overlay-manual-pass").click(top.Swiftest.manual_pass);
   $(".swiftest-overlay-manual-fail").click(top.Swiftest.manual_fail);
 
+  socket.addEventListener(flash.events.Event.CONNECT, function(e) {
+	trace("connected");
+  });
+
+  socket.addEventListener(flash.events.Event.CLOSE, function(e) {
+	trace("closed!");
+  });
+
+  socket.addEventListener(flash.events.IOErrorEvent.IO_ERROR, function(e) {
+	trace("IO error!");
+  });
+
+  socket.addEventListener(flash.events.SecurityErrorEvent.SECURITY_ERROR, function(e) {
+	trace("security error!");
+  });
+
   socket.addEventListener(flash.events.ProgressEvent.SOCKET_DATA, function(e) {
 	buffer += socket.readUTFBytes(socket.bytesAvailable);
 	process();
   });
 
+  trace("connecting to 127.0.0.1:" + SWIFTEST_PORT);
   socket.connect("127.0.0.1", SWIFTEST_PORT);
 };
 
