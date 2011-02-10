@@ -500,6 +500,20 @@ class SwiftestScreen
 
 		sel.deleteFromDocument
 	  end
+
+	  def select_all_text
+		focus
+
+		node = dom_node
+
+		range = node.ownerDocument.createRange
+		range.setStartBefore node
+		range.setEndAfter node
+
+		sel = top.window.getSelection
+		sel.removeAllRanges
+		sel.addRange range
+	  end
 	end
 
 	link_item_class :item, JQueryAccessibleField
