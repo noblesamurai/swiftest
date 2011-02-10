@@ -479,7 +479,7 @@ class SwiftestScreen
 		node = obtain.find("p:contains(#{text.inspect})").get(0).firstChild
 		node_text = node.nodeValue
 
-		raise "Text #{text.inspect} not found in node contents #{node_text.inspect}" if node_text.index(text).nil?
+		# raise "Text #{text.inspect} not found in node contents #{node_text.inspect}" if node_text.index(text).nil?
 
 		range = node.ownerDocument.createRange
 		range.setStartBefore(node)
