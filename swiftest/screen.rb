@@ -476,14 +476,15 @@ class SwiftestScreen
 	  end
 
 	  def select_p_containing(text)
-		node = obtain.find("p:contains(#{text.inspect})").get(0).firstChild
-		node_text = node.nodeValue
+		node = obtain.find("p:contains(#{text.inspect})").get(0)#.firstChild
+		#node_text = node.nodeValue
 
 		# raise "Text #{text.inspect} not found in node contents #{node_text.inspect}" if node_text.index(text).nil?
 
 		range = node.ownerDocument.createRange
-		range.setStartBefore(node)
-		range.setEndAfter(node)
+		range.selectNodeContents node
+		#range.setStartBefore(node.firstChild)
+		#range.setEndAfter(node.lastChild)
 
 		sel = top.window.getSelection
 		sel.removeAllRanges
