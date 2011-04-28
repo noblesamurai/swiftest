@@ -106,7 +106,7 @@ class Swiftest
 	# can kill AIR!
 	new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub(/<\/\s*head\s*>/i, "
 		<script type='text/javascript'>
-		  var SWIFTEST_PORT = #@port;
+		  var SWIFTEST_PORT = air.NativeApplication.nativeApplication.publisherID;
 		</script>
 		<script type='text/javascript' src='inject.swiftest.js'></script>
 		<style type='text/css'>
@@ -138,7 +138,7 @@ class Swiftest
 
 	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
 	if !SELF_LAUNCH
-	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file")
+	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file")
 	  @started = true
 	  at_exit do stop end
 
