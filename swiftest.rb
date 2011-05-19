@@ -359,7 +359,7 @@ class Swiftest
 
 	@@storedState = nil if @@storedState[:swiftest] == self
 
-	p $swiftest_calls
+	p $swiftest_calls.to_a.sort_by {|x,y| -y}
   end
 
   def started?
