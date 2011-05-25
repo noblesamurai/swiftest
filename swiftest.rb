@@ -61,11 +61,12 @@ class Swiftest
   	@@fileSuffix
   end
 
-  def initialize(hash, descriptor_path, initial_content=nil, project_file="")
+  def initialize(hash, descriptor_path, initial_content=nil, project_file="", *other_args)
 	@hash = hash
 	@descriptor_path = descriptor_path
 	@profile_file = ""
 	@project_file = project_file
+	@other_args = other_args
 
 	@relative_dir = initial_content ? initial_content : File.dirname(@descriptor_path)
 
@@ -138,7 +139,7 @@ class Swiftest
 
 	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
 	if !SELF_LAUNCH
-	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file")
+	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}")
 	  @started = true
 	  at_exit do stop end
 
