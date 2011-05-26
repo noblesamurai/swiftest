@@ -95,6 +95,7 @@ class Swiftest
 		end
 	  end
 	end
+	@server.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true)
 	@port = @server.addr[1]
 	
 	@new_content_file = "#@content_file.swiftest#@@fileSuffix.html"
