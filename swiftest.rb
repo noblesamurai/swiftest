@@ -98,8 +98,6 @@ class Swiftest
 	@server.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true)
 	@port = @server.addr[1]
 
-	STDERR.puts "listening on :#@port"
-	
 	@new_content_file = "#@content_file.swiftest#@@fileSuffix.html"
 
 	bannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "banner.png"))).gsub("\n", "")
@@ -142,9 +140,7 @@ class Swiftest
 
 	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
 	if !SELF_LAUNCH
-	  STDERR.puts "begin popen4"
 	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}")
-	  STDERR.puts "popen4 returned"
 	  @started = true
 	  at_exit do stop end
 
@@ -209,9 +205,7 @@ class Swiftest
 
 	# Block for the client
 	STDERR.puts "engage!" if SELF_LAUNCH
-	STDERR.puts "prepare for client GET"
 	@client = @server.accept
-	STDERR.puts "client GET!"
 	STDERR.flush
  	@started = true
   end
