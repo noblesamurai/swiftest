@@ -429,7 +429,7 @@ top.Swiftest = function() {
   });
 
   trace("connecting to 127.0.0.1:" + SWIFTEST_PORT);
-  socket.connect("127.0.0.1", SWIFTEST_PORT);
+  socket.connect("127.0.0.1", parseInt(SWIFTEST_PORT));
 };
 
 $(top.Swiftest);

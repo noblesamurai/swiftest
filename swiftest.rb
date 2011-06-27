@@ -97,6 +97,8 @@ class Swiftest
 	end
 	@server.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true)
 	@port = @server.addr[1]
+
+	STDERR.puts "listening on :#@port"
 	
 	@new_content_file = "#@content_file.swiftest#@@fileSuffix.html"
 
@@ -140,7 +142,9 @@ class Swiftest
 
 	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
 	if !SELF_LAUNCH
+	  STDERR.puts "begin popen4"
 	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}")
+	  STDERR.puts "popen4 returned"
 	  @started = true
 	  at_exit do stop end
 
@@ -153,49 +157,63 @@ class Swiftest
 	  end
 
 	  # Start a thread to pipe through output from adl
-	  @reader_thread = Thread.start do
-		begin
-		  data_ok = true
+	  if !ENV['SWIFTEST_NOLOGTHREAD']
+		@reader_thread = Thread.start do
+		  begin
+			data_ok = true
 
-		  while data_ok
-			triggered = IO.select([@stdout, @stderr])
-			break unless triggered and triggered[0]
-			triggered[0].each do |io|
-			  data = io.readline	# rarely not line based, so this should be ok.
-			  if data
+			while data_ok
+			  Thread.pass
+			  sleep 1.0
+
+			  [@stdout, @stderr].each do |io|
+				n = 1024
+				str = ""
+				while n == 1024
+				  begin
+					s = io.read_nonblock 1024
+					str += s
+				  rescue EOFError
+					data_ok = false
+				  rescue Errno::EWOULDBLOCK
+					n = -1
+				  rescue Errno::EINTR
+					n = -1
+				  end
+				end
+
 				if ENV['SWIFTEST_LOGGING'] == 'realtime'
-				  logout.puts data
+				  logout.print str
 				  logout.flush
 				else
-				  @stdlog += data
+				  @stdlog += str
 				end
-			  else
-				data_ok = false
 			  end
 			end
+		  rescue IOError
+			STDERR.puts "ioerror in reader thread: #{$!.inspect}"
+			exit
 		  end
-		rescue EOFError
-		  # Ignore this, it's nothing.
-		rescue IOError
-		  STDERR.puts "ioerror in reader thread: #{$!.inspect}"
-		  exit
+
+		  if ENV['SWIFTEST_LOGGING'] == 'post'
+			logout.puts @stdlog 
+			logout.flush 
+		  end
+
+		  logout.close if ENV['SWIFTEST_LOGOUT']
+
+		  stop
 		end
-
-		if ENV['SWIFTEST_LOGGING'] == 'post'
-		  logout.puts @stdlog 
-		  logout.flush 
-		end
-
-		logout.close if ENV['SWIFTEST_LOGOUT']
-
-		stop
 	  end
 	end
 
 	# Block for the client
 	STDERR.puts "engage!" if SELF_LAUNCH
+	STDERR.puts "prepare for client GET"
 	@client = @server.accept
-  	@started = true
+	STDERR.puts "client GET!"
+	STDERR.flush
+ 	@started = true
   end
 
   def stop
@@ -216,7 +234,7 @@ class Swiftest
 	  Process.wait @pid
 	end
 
-	@reader_thread.join
+	@reader_thread.join if @reader_thread
 	cleanup
   end
 
@@ -466,4 +484,4 @@ class Swiftest
 	end
 end
 
-# vim: set sw=2:
+# vim: set sw=2 ts=4:
