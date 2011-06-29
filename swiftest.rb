@@ -154,52 +154,43 @@ class Swiftest
 
 	  # Start a thread to pipe through output from adl
 	  if !ENV['SWIFTEST_NOLOGTHREAD']
-		@reader_thread = Thread.start do
+	    @reader_thread = Thread.start do
 		  begin
-			data_ok = true
+		    data_ok = true
 
-			while data_ok
-			  Thread.pass
-			  sleep 1.0
-
-			  [@stdout, @stderr].each do |io|
-				n = 1024
-				str = ""
-				while n == 1024
-				  begin
-					s = io.read_nonblock 1024
-					str += s
-				  rescue EOFError
-					data_ok = false
-				  rescue Errno::EWOULDBLOCK
-					n = -1
-				  rescue Errno::EINTR
-					n = -1
+		    while data_ok
+			  triggered = IO.select([@stdout, @stderr])
+			  break unless triggered and triggered[0]
+			  triggered[0].each do |io|
+			    data = io.readline	# rarely not line based, so this should be ok.
+			    if data
+				  if ENV['SWIFTEST_LOGGING'] == 'realtime'
+				    logout.puts data
+				    logout.flush
+				  else
+				    @stdlog += data
 				  end
-				end
-
-				if ENV['SWIFTEST_LOGGING'] == 'realtime'
-				  logout.print str
-				  logout.flush
-				else
-				  @stdlog += str
-				end
+			    else
+				  data_ok = false
+			    end
 			  end
-			end
+		    end
+		  rescue EOFError
+		    # Ignore this, it's nothing.
 		  rescue IOError
-			STDERR.puts "ioerror in reader thread: #{$!.inspect}"
-			exit
+		    STDERR.puts "ioerror in reader thread: #{$!.inspect}"
+		    exit
 		  end
 
 		  if ENV['SWIFTEST_LOGGING'] == 'post'
-			logout.puts @stdlog 
-			logout.flush 
+		    logout.puts @stdlog 
+		    logout.flush 
 		  end
 
 		  logout.close if ENV['SWIFTEST_LOGOUT']
 
 		  stop
-		end
+	    end
 	  end
 	end
 
@@ -463,19 +454,19 @@ class Swiftest
 	  expect_browseDialog match, file, true, &b
   end
 
-	def expect_navigate match, soft=false, &b
-	  ue = UniqueExpect.new(match)
-	  @expected_navigates << ue
-	  b.call ->{ue.hit?}
+  def expect_navigate match, soft=false, &b
+	ue = UniqueExpect.new(match)
+	@expected_navigates << ue
+	b.call ->{ue.hit?}
 
-	  if @expected_navigates[-1] == ue
-	    raise "Expected navigateToUrl #{match.inspect} didn't occur!" unless soft
-	  end
+	if @expected_navigates[-1] == ue
+	  raise "Expected navigateToUrl #{match.inspect} didn't occur!" unless soft
 	end
+  end
 
-	def soft_expect_navigate match, &b
-	  expect_navigate match, true, &b
-	end
+  def soft_expect_navigate match, &b
+	expect_navigate match, true, &b
+  end
 end
 
 # vim: set sw=2 ts=4:
