@@ -16,44 +16,44 @@
 require File.join(File.dirname(__FILE__), 'screen')
 
 module SwiftestEnvironment
-
   # To be called after all SwiftestScreen (and derived) instances
   # are set up.  Each instance is given a reference to 'top' (which
   # this environment knows about)
   def init_screens
-		SwiftestScreen.screens.each {|screen| screen.top = top}
+    SwiftestScreen.screens.each {|screen| screen.top = top}
   end
 
   # Switches to the given screen (i.e. just sets @screen to it),
   # asserting that it's current.
   def switch_screen(screen)
-		wait_for_switch = 60.0
-		if not screen.current?
-			begin
-			Timeout.timeout(wait_for_switch) do
-				sleep 1.0
-				sleep 1.0 while @screen.current? if @screen
-			end
-			if not screen.current?
-				# Any other screen current?
-				raise "CONCLUSION: NO SCREEN IS CURRENT"
-			end
-			rescue Timeout::Error
-			raise "failed to switch_screen to #{screen.description} - not current"
-			end
-		end
+    wait_for_switch = 60.0
+    if not screen.current?
+      begin
+	Timeout.timeout(wait_for_switch) do
+	  sleep 1.0
+	  sleep 1.0 while @screen.current? if @screen
+	end
+	if not screen.current?
+	  # Any other screen current?
+	  raise "CONCLUSION: NO SCREEN IS CURRENT"
+	end
+      rescue Timeout::Error
+	raise "failed to switch_screen to #{screen.description} - not current"
+      end
+    end
 
-		@screen = screen
+    @screen = screen
   end
 
   # Convenience pass-through to the Swiftest object.
   def top(*args, &block)
-		@swiftest.top(*args, &block)
+    @swiftest.top(*args, &block)
   end
 
   # Convenience jQuery method (=> @swiftest.top.jQuery)
   def jQuery(*args, &block)
-		top.jQuery(*args, &block)
+    top.jQuery(*args, &block)
   end
 end
 
+# vim: set sw=2 ts=8 noet:

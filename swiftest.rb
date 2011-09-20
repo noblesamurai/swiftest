@@ -7,11 +7,11 @@
 # 
 # Swiftest is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
 # GNU General Public License for more details.
 # 
 # You should have received a copy of the GNU General Public License
-# along with Swiftest.  If not, see <http://www.gnu.org/licenses/>.
+# along with Swiftest.	If not, see <http://www.gnu.org/licenses/>.
 
 require 'rubygems'
 require 'hpricot'
@@ -36,445 +36,445 @@ class Swiftest
   @@storedState = nil
 
   def self.newOrRecover(*args)
-	if @@storedState
-	  return @@storedState[:swiftest] if @@storedState[:hash] == args.hash
+    if @@storedState
+      return @@storedState[:swiftest] if @@storedState[:hash] == args.hash
 
-	  @@storedState[:swiftest].stop
-	  @@storedState = nil
-	end
+      @@storedState[:swiftest].stop
+      @@storedState = nil
+    end
 
-	swiftest = new(args.hash, *args)
-	@@storedState = {:hash => args.hash, :swiftest => swiftest}
-	swiftest
+    swiftest = new(args.hash, *args)
+    @@storedState = {:hash => args.hash, :swiftest => swiftest}
+    swiftest
   end
 
   def self.active
-	return nil if @@storedState.nil?
-	@@storedState[:swiftest]
+    return nil if @@storedState.nil?
+    @@storedState[:swiftest]
   end
 
   def self.fileSuffix=(suffix)
-  	@@fileSuffix = suffix
+    @@fileSuffix = suffix
   end
 
   def self.fileSuffix
-  	@@fileSuffix
+    @@fileSuffix
   end
 
   def initialize(hash, descriptor_path, initial_content=nil, project_file="", *other_args)
-	@hash = hash
-	@descriptor_path = descriptor_path
-	@profile_file = ""
-	@project_file = project_file
-	@other_args = other_args
+    @hash = hash
+    @descriptor_path = descriptor_path
+    @profile_file = ""
+    @project_file = project_file
+    @other_args = other_args
 
-	@relative_dir = initial_content ? initial_content : File.dirname(@descriptor_path)
+    @relative_dir = initial_content ? initial_content : File.dirname(@descriptor_path)
 
-	@descriptor_xml = File.read(@descriptor_path)
+    @descriptor_xml = File.read(@descriptor_path)
 
-	descriptor = Hpricot.XML(@descriptor_xml)
-	@id = (descriptor/"application > id").text
-	@content_file = (descriptor/"application > initialWindow > content").inner_html
+    descriptor = Hpricot.XML(@descriptor_xml)
+    @id = (descriptor/"application > id").text
+    @content_file = (descriptor/"application > initialWindow > content").inner_html
 
-	clear_expects!
+    clear_expects!
   end
 
   def clear_expects!
-	@expected_alerts = []
-	@expected_confirms = []
-	@expected_prompts = []
-	@expected_navigates = []
-	@expected_browseDialogs = []
+    @expected_alerts = []
+    @expected_confirms = []
+    @expected_prompts = []
+    @expected_navigates = []
+    @expected_browseDialogs = []
   end
 
   # Bootstrap the application.
   def start
-	raise AlreadyStartedError if @started
+    raise AlreadyStartedError if @started
 
+    begin
+      @server = TCPServer.open(0)
+    rescue SocketError
+      # Possibly OS X being rubbish.
+      while !@server
 	begin
-	  @server = TCPServer.open(0)
+	  @server = TCPServer.open('0.0.0.0', 20000 + rand(10000))
 	rescue SocketError
-	  # Possibly OS X being rubbish.
-	  while !@server
-		begin
-		  @server = TCPServer.open('0.0.0.0', 20000 + rand(10000))
-		rescue SocketError
-		  STDERR.puts "Failed to open local server again."
+	  STDERR.puts "Failed to open local server again."
+	end
+      end
+    end
+    @server.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true)
+    @port = @server.addr[1]
+
+    @new_content_file = "#@content_file.swiftest#@@fileSuffix.html"
+
+    bannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "banner.png"))).gsub("\n", "")
+    rbannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "rbanner.png"))).gsub("\n", "")
+
+    # We add the script tags to the end of the </head> tag and then place it in position for the new
+    # (doctored) content file.	Don't just append it, a <script/> tag outside of the normal place
+    # can kill AIR!
+    new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub(/<\/\s*head\s*>/i, "
+	<script type='text/javascript'>
+	  var SWIFTEST_PORT = air.NativeApplication.nativeApplication.publisherID;
+	</script>
+	<script type='text/javascript' src='inject.swiftest.js'></script>
+	<style type='text/css'>
+	  #{File.read(File.join(SWIFTEST_BASE, "inject.css")).gsub("YBANNERB64", bannerb64).gsub("RBANNERB64", rbannerb64)}
+	</style>
+      </head>").gsub(/(<\s*body[^>]*>)/i, "\\1\<div id='swiftest-overlay-ff'>
+	<div class='swiftest-overlay-text' id='swiftest-overlay-left-container'>
+	  <div id='swiftest-overlay-left'>
+	    initialising
+	  </div>
+	  <a class='swiftest-overlay-manual-pass' href='#'>Pass</a>
+	  <a class='swiftest-overlay-manual-fail' href='#'>Fail</a>
+	</div>
+	<div class='swiftest-overlay-text' id='swiftest-overlay-right'>swiftest</div>
+      </div>")
+
+    File.open(File.join(@relative_dir, @new_content_file), "w") {|f| f.write(new_content)}
+
+    # Actually drop inject.js in under the right name.
+    FileUtils.cp File.join(SWIFTEST_BASE, "inject.js"), File.join(@relative_dir, "inject.swiftest.js")
+
+    # Make a new copy of the descriptor to point to a new initial page.
+    @new_descriptor_file = "#@descriptor_path.swiftest#@@fileSuffix.xml"
+    File.open(@new_descriptor_file, "w") do |xmlout|
+      descriptor = Hpricot.XML(@descriptor_xml)
+      (descriptor/"application > initialWindow > content").inner_html = @new_content_file
+      xmlout.puts descriptor
+    end
+
+    # Open up the modified descriptor with ADL if the user isn't starting it themselves.
+    if !SELF_LAUNCH
+      @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}")
+      @started = true
+      at_exit do stop end
+
+      @stdlog = ''
+
+      if ENV['SWIFTEST_LOGOUT']
+	logout = File.open(ENV['SWIFTEST_LOGOUT'] + Time.now.to_i.to_s, "w")
+      else
+	logout = STDOUT
+      end
+
+      # Start a thread to pipe through output from adl
+      if !ENV['SWIFTEST_NOLOGTHREAD']
+	@reader_thread = Thread.start do
+	  begin
+	    data_ok = true
+
+	    while data_ok
+	      triggered = IO.select([@stdout, @stderr])
+	      break unless triggered and triggered[0]
+	      triggered[0].each do |io|
+		data = io.readline  # rarely not line based, so this should be ok.
+		if data
+		  if ENV['SWIFTEST_LOGGING'] == 'realtime'
+		    logout.puts data
+		    logout.flush
+		  else
+		    @stdlog += data
+		  end
+		else
+		  data_ok = false
 		end
-	  end
-	end
-	@server.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true)
-	@port = @server.addr[1]
-
-	@new_content_file = "#@content_file.swiftest#@@fileSuffix.html"
-
-	bannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "banner.png"))).gsub("\n", "")
-	rbannerb64 = Base64.encode64(File.read(File.join(SWIFTEST_BASE, "rbanner.png"))).gsub("\n", "")
-
-	# We add the script tags to the end of the </head> tag and then place it in position for the new
-	# (doctored) content file.  Don't just append it, a <script/> tag outside of the normal place
-	# can kill AIR!
-	new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub(/<\/\s*head\s*>/i, "
-		<script type='text/javascript'>
-		  var SWIFTEST_PORT = air.NativeApplication.nativeApplication.publisherID;
-		</script>
-		<script type='text/javascript' src='inject.swiftest.js'></script>
-		<style type='text/css'>
-		  #{File.read(File.join(SWIFTEST_BASE, "inject.css")).gsub("YBANNERB64", bannerb64).gsub("RBANNERB64", rbannerb64)}
-		</style>
-	  </head>").gsub(/(<\s*body[^>]*>)/i, "\\1\<div id='swiftest-overlay-ff'>
-		<div class='swiftest-overlay-text' id='swiftest-overlay-left-container'>
-		  <div id='swiftest-overlay-left'>
-			initialising
-		  </div>
-		  <a class='swiftest-overlay-manual-pass' href='#'>Pass</a>
-		  <a class='swiftest-overlay-manual-fail' href='#'>Fail</a>
-		</div>
-		<div class='swiftest-overlay-text' id='swiftest-overlay-right'>swiftest</div>
-	  </div>")
-
-	File.open(File.join(@relative_dir, @new_content_file), "w") {|f| f.write(new_content)}
-
-	# Actually drop inject.js in under the right name.
-	FileUtils.cp File.join(SWIFTEST_BASE, "inject.js"), File.join(@relative_dir, "inject.swiftest.js")
-
-	# Make a new copy of the descriptor to point to a new initial page.
-	@new_descriptor_file = "#@descriptor_path.swiftest#@@fileSuffix.xml"
-	File.open(@new_descriptor_file, "w") do |xmlout|
-	  descriptor = Hpricot.XML(@descriptor_xml)
-	  (descriptor/"application > initialWindow > content").inner_html = @new_content_file
-	  xmlout.puts descriptor
-	end
-
-	# Open up the modified descriptor with ADL if the user isn't starting it themselves.
-	if !SELF_LAUNCH
-	  @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}")
-	  @started = true
-	  at_exit do stop end
-
-	  @stdlog = ''
-
-	  if ENV['SWIFTEST_LOGOUT']
-		logout = File.open(ENV['SWIFTEST_LOGOUT'] + Time.now.to_i.to_s, "w")
-	  else
-		logout = STDOUT
-	  end
-
-	  # Start a thread to pipe through output from adl
-	  if !ENV['SWIFTEST_NOLOGTHREAD']
-	    @reader_thread = Thread.start do
-		  begin
-		    data_ok = true
-
-		    while data_ok
-			  triggered = IO.select([@stdout, @stderr])
-			  break unless triggered and triggered[0]
-			  triggered[0].each do |io|
-			    data = io.readline	# rarely not line based, so this should be ok.
-			    if data
-				  if ENV['SWIFTEST_LOGGING'] == 'realtime'
-				    logout.puts data
-				    logout.flush
-				  else
-				    @stdlog += data
-				  end
-			    else
-				  data_ok = false
-			    end
-			  end
-		    end
-		  rescue EOFError
-		    # Ignore this, it's nothing.
-		  rescue IOError
-		    STDERR.puts "ioerror in reader thread: #{$!.inspect}"
-		    exit
-		  end
-
-		  if ENV['SWIFTEST_LOGGING'] == 'post'
-		    logout.puts @stdlog 
-		    logout.flush 
-		  end
-
-		  logout.close if ENV['SWIFTEST_LOGOUT']
-
-		  stop
+	      end
 	    end
+	  rescue EOFError
+	    # Ignore this, it's nothing.
+	  rescue IOError
+	    STDERR.puts "ioerror in reader thread: #{$!.inspect}"
+	    exit
 	  end
-	end
 
-	# Block for the client
-	STDERR.puts "engage!" if SELF_LAUNCH
-	@client = @server.accept
-	STDERR.flush
- 	@started = true
+	  if ENV['SWIFTEST_LOGGING'] == 'post'
+	    logout.puts @stdlog 
+	    logout.flush 
+	  end
+
+	  logout.close if ENV['SWIFTEST_LOGOUT']
+
+	  stop
+	end
+      end
+    end
+
+    # Block for the client
+    STDERR.puts "engage!" if SELF_LAUNCH
+    @client = @server.accept
+    STDERR.flush
+    @started = true
   end
 
   def stop
-	return unless @started
+    return unless @started
 
-	@started = false
-	# When we kill adl, reader_thread will
-	# probably try to stop us again here.
+    @started = false
+    # When we kill adl, reader_thread will
+    # probably try to stop us again here.
 
-	begin
-	  Timeout.timeout(3) do
-		Process.kill "TERM", @pid rescue false
-		Process.wait @pid
-	  end
-	rescue Timeout::Error
-	  # STDERR.puts "process #@pid not dying; killing (not really an error state with AIR)"
-	  Process.kill "KILL", @pid rescue false
-	  Process.wait @pid
-	end
+    begin
+      Timeout.timeout(3) do
+	Process.kill "TERM", @pid rescue false
+	Process.wait @pid
+      end
+    rescue Timeout::Error
+      # STDERR.puts "process #@pid not dying; killing (not really an error state with AIR)"
+      Process.kill "KILL", @pid rescue false
+      Process.wait @pid
+    end
 
-	@reader_thread.join if @reader_thread
-	cleanup
+    @reader_thread.join if @reader_thread
+    cleanup
   end
 
   def send_command command, *args
-	send_str command
-	send_int args.length
+    send_str command
+    send_int args.length
 
-	args.each do |arg|
-	  esc = arg.javascript_escape
-	  
-	  case esc
-	  when String
-		# Ordinary string serialised JS. Will fit in nicely.
-		send_str "s"
-		send_str esc
-	  when Numeric
-		# Back reference!
-		send_str "b"
-		send_int esc
-	  else
-		raise "Unknown type of JS-escaped object #{esc}: #{esc.class}"
-	  end
-	end
-	@client.flush
+    args.each do |arg|
+      esc = arg.javascript_escape
+      
+      case esc
+      when String
+	# Ordinary string serialised JS. Will fit in nicely.
+	send_str "s"
+	send_str esc
+      when Numeric
+	# Back reference!
+	send_str "b"
+	send_int esc
+      else
+	raise "Unknown type of JS-escaped object #{esc}: #{esc.class}"
+      end
+    end
+    @client.flush
 
-	begin
-	  success = recv_bool
-	  confirms_or_alerts = recv_bool
-	rescue Errno::ECONNRESET => e
-	  STDERR.puts "connection reset! sending #{command.inspect}, #{args.inspect}"
-	  exit 250
-	end
+    begin
+      success = recv_bool
+      confirms_or_alerts = recv_bool
+    rescue Errno::ECONNRESET => e
+      STDERR.puts "connection reset! sending #{command.inspect}, #{args.inspect}"
+      exit 250
+    end
 
-	raise JavascriptError, recv_str unless success
+    raise JavascriptError, recv_str unless success
 
-	begin
-	  js = recv_str
-	  r = eval(js)
-	rescue SyntaxError => e
-	  STDERR.puts "got a syntax error while evaling #{js.inspect}"
-	  raise
-	end
+    begin
+      js = recv_str
+      r = eval(js)
+    rescue SyntaxError => e
+      STDERR.puts "got a syntax error while evaling #{js.inspect}"
+      raise
+    end
 
-	if confirms_or_alerts
-	  alerts, confirms, prompts, navigates, browseDialogs = send_command "acp-state"
+    if confirms_or_alerts
+      alerts, confirms, prompts, navigates, browseDialogs = send_command "acp-state"
 
-	  while alerts.length > 0
-		raise "Unexpected alert #{alerts[0]}" if @expected_alerts.length.zero?
-		raise "Unexpected alert #{alerts[0]}" unless @expected_alerts[0].regexp === alerts[0]
-		alerts.shift
-		@expected_alerts[0].hit!
-		@expected_alerts.shift
-	  end
+      while alerts.length > 0
+	raise "Unexpected alert #{alerts[0]}" if @expected_alerts.length.zero?
+	raise "Unexpected alert #{alerts[0]}" unless @expected_alerts[0].regexp === alerts[0]
+	alerts.shift
+	@expected_alerts[0].hit!
+	@expected_alerts.shift
+      end
 
-	  while confirms.length > 0
-		raise "Unexpected confirm #{confirms[0]}" if @expected_confirms.length.zero?
-		raise "Unexpected confirm #{confirms[0]}" unless @expected_confirms[0].regexp === confirms[0]
-		confirms.shift
-		@expected_confirms[0].hit!
-		@expected_confirms.shift
-	  end
+      while confirms.length > 0
+	raise "Unexpected confirm #{confirms[0]}" if @expected_confirms.length.zero?
+	raise "Unexpected confirm #{confirms[0]}" unless @expected_confirms[0].regexp === confirms[0]
+	confirms.shift
+	@expected_confirms[0].hit!
+	@expected_confirms.shift
+      end
 
-	  while prompts.length > 0
-		raise "Unexpected prompt #{prompts[0]}" if @expected_prompts.length.zero?
-		raise "Expected prompt #{@expected_prompts[0].regexp}, but received #{prompts[0]}" unless @expected_prompts[0].regexp === prompts[0]
-		prompts.shift
-		@expected_prompts[0].hit!
-		@expected_prompts.shift
-	  end
+      while prompts.length > 0
+	raise "Unexpected prompt #{prompts[0]}" if @expected_prompts.length.zero?
+	raise "Expected prompt #{@expected_prompts[0].regexp}, but received #{prompts[0]}" unless @expected_prompts[0].regexp === prompts[0]
+	prompts.shift
+	@expected_prompts[0].hit!
+	@expected_prompts.shift
+      end
 
-	  while navigates.length > 0
-		raise "Unexpected navigateToUrl #{navigates[0]}" if @expected_navigates.length.zero?
-		raise "Expected navigateToUrl #{@expected_navigates[0].regexp}, but received #{navigates[0]}" unless @expected_navigates[0].regexp === navigates[0]
-		navigates.shift
-		@expected_navigates[0].hit!
-		@expected_navigates.shift
-	  end
+      while navigates.length > 0
+	raise "Unexpected navigateToUrl #{navigates[0]}" if @expected_navigates.length.zero?
+	raise "Expected navigateToUrl #{@expected_navigates[0].regexp}, but received #{navigates[0]}" unless @expected_navigates[0].regexp === navigates[0]
+	navigates.shift
+	@expected_navigates[0].hit!
+	@expected_navigates.shift
+      end
 
-	  while browseDialogs.length > 0
-		raise "Unexpected browseDialog #{browseDialogs[0]}" if @expected_browseDialogs.length.zero?
-		raise "Expected browseDialog #{@expected_browseDialogs[0].regexp}, but received #{browseDialogs[0]}" unless @expected_browseDialogs[0].regexp === browseDialogs[0]
-		browseDialogs.shift
-		@expected_browseDialogs[0].hit!
-		@expected_browseDialogs.shift
-	  end
-	end
+      while browseDialogs.length > 0
+	raise "Unexpected browseDialog #{browseDialogs[0]}" if @expected_browseDialogs.length.zero?
+	raise "Expected browseDialog #{@expected_browseDialogs[0].regexp}, but received #{browseDialogs[0]}" unless @expected_browseDialogs[0].regexp === browseDialogs[0]
+	browseDialogs.shift
+	@expected_browseDialogs[0].hit!
+	@expected_browseDialogs.shift
+      end
+    end
 
-	r
+    r
   end
 
   def send_int int
-	begin
-	  @client.write int.to_s + ","
-	rescue Errno::EPIPE
-	  exit 250
-	end
+    begin
+      @client.write int.to_s + ","
+    rescue Errno::EPIPE
+      exit 250
+    end
   end
 
   def send_str str
-	begin
-	  send_int str.length
-	  @client.write str
-	rescue Errno::EPIPE
-	  exit 250
-	end
+    begin
+      send_int str.length
+      @client.write str
+    rescue Errno::EPIPE
+      exit 250
+    end
   end
 
   def recv_bool
-	begin
-	  @client.read(1) == "t"
-	rescue Errno::EPIPE
-	  exit 250
-	end
+    begin
+      @client.read(1) == "t"
+    rescue Errno::EPIPE
+      exit 250
+    end
   end
 
   def recv_int
-	begin
-	  buf = ""
-	  buf += @client.read(1) while buf[-1] != ?,
-	  buf[0..-2].to_i
-	rescue Errno::EPIPE
-	  exit 250
-	end
+    begin
+      buf = ""
+      buf += @client.read(1) while buf[-1] != ?,
+      buf[0..-2].to_i
+    rescue Errno::EPIPE
+      exit 250
+    end
   end
 
   def recv_str
-	begin
-	  len = recv_int
-	  buf = ""
-	  buf += @client.read(len - buf.length) while buf.length < len
+    begin
+      len = recv_int
+      buf = ""
+      buf += @client.read(len - buf.length) while buf.length < len
 
-	  buf
-	rescue Errno::EPIPE
-	  exit 250
-	end
+      buf
+    rescue Errno::EPIPE
+      exit 250
+    end
   end
 
   def cleanup
-	File.unlink @new_descriptor_file rescue true
-	File.unlink File.join(@relative_dir, @new_content_file) rescue true
-	File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
+    File.unlink @new_descriptor_file rescue true
+    File.unlink File.join(@relative_dir, @new_content_file) rescue true
+    File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
 
-	@@storedState = nil if @@storedState[:swiftest] == self
+    @@storedState = nil if @@storedState[:swiftest] == self
 
-	p $swiftest_calls.to_a.sort_by {|x,y| -y}
+    p $swiftest_calls.to_a.sort_by {|x,y| -y}
   end
 
   def started?
-	@started
+    @started
   end
 
   class UniqueExpect
-	def initialize regexp
-	  @regexp = regexp
-	  @hit = false
-	end
-	def hit?; @hit; end
-	def hit!; @hit = true; end
-	attr_accessor :regexp
+    def initialize regexp
+      @regexp = regexp
+      @hit = false
+    end
+    def hit?; @hit; end
+    def hit!; @hit = true; end
+    attr_accessor :regexp
   end
 
   def expect_confirm match, ok, soft=false, &b
-	ue = UniqueExpect.new(match)
-	@expected_confirms << ue
-	restore_cr = send_command("set-confirm-reply", ok)
-	b.call ->{ue.hit?}
+    ue = UniqueExpect.new(match)
+    @expected_confirms << ue
+    restore_cr = send_command("set-confirm-reply", ok)
+    b.call ->{ue.hit?}
 
-	if @expected_confirms[-1] == ue
-	  raise "Expected confirm #{match.inspect} didn't occur!" unless soft
-	  @expected_confirms.pop
-	end
+    if @expected_confirms[-1] == ue
+      raise "Expected confirm #{match.inspect} didn't occur!" unless soft
+      @expected_confirms.pop
+    end
 
-	send_command "set-confirm-reply", restore_cr
+    send_command "set-confirm-reply", restore_cr
   end
 
   def soft_expect_confirm match, ok, &b
-	expect_confirm match, ok, true, &b
+    expect_confirm match, ok, true, &b
   end
 
   def expect_alert match, soft=false, &b
-	ue = UniqueExpect.new(match)
-	@expected_alerts << ue
-	b.call ->{ue.hit?}
+    ue = UniqueExpect.new(match)
+    @expected_alerts << ue
+    b.call ->{ue.hit?}
 
-	if @expected_alerts[-1] == ue
-	  raise "Expected alert #{match.inspect} didn't occur!" unless soft
-	  @expected_alerts.pop
-	end
+    if @expected_alerts[-1] == ue
+      raise "Expected alert #{match.inspect} didn't occur!" unless soft
+      @expected_alerts.pop
+    end
   end
 
   def soft_expect_alert match, &b
-	expect_alert match, true, &b
+    expect_alert match, true, &b
   end
 
   # Note that 'reply' can be :default or :cancel
   def expect_prompt match, reply, soft=false, &b
-	reply = "::DEFAULT::" if reply == :default
-	reply = "::CANCEL::" if reply == :cancel
+    reply = "::DEFAULT::" if reply == :default
+    reply = "::CANCEL::" if reply == :cancel
 
-	ue = UniqueExpect.new(match)
-	@expected_prompts << ue
-	restore_pr = send_command("set-prompt-reply", reply)
-	b.call ->{ue.hit?}
+    ue = UniqueExpect.new(match)
+    @expected_prompts << ue
+    restore_pr = send_command("set-prompt-reply", reply)
+    b.call ->{ue.hit?}
 
-	if @expected_prompts[-1] == ue
-	  raise "Expected prompt #{match.inspect} didn't occur!" unless soft
-	  @expected_prompts.pop
-	end
+    if @expected_prompts[-1] == ue
+      raise "Expected prompt #{match.inspect} didn't occur!" unless soft
+      @expected_prompts.pop
+    end
 
-	send_command "set-prompt-reply", restore_pr
+    send_command "set-prompt-reply", restore_pr
   end
 
   def soft_expect_prompt match, reply, &b
-	expect_prompt match, reply, true, &b
+    expect_prompt match, reply, true, &b
   end
 
   def expect_browseDialog match, file, soft=false, &b
-	  ue = UniqueExpect.new(match)
-	  @expected_browseDialogs << ue
-	  restore_file = send_command("set-browsedialog-file", file);
-	  b.call ->{ue.hit?}
+    ue = UniqueExpect.new(match)
+    @expected_browseDialogs << ue
+    restore_file = send_command("set-browsedialog-file", file);
+    b.call ->{ue.hit?}
 
-	  if @expected_browseDialogs[-1] == ue
-		  raise "Expected browseDialog #{match.inspect} didn't occur!" unless soft
-		  @expected_browseDialogs.pop
-	  end
+    if @expected_browseDialogs[-1] == ue
+      raise "Expected browseDialog #{match.inspect} didn't occur!" unless soft
+      @expected_browseDialogs.pop
+    end
 
-	  send_command "set-browsedialog-file", restore_file
+    send_command "set-browsedialog-file", restore_file
   end
 
   def soft_expect_browseDialog match, file, &b
-	  expect_browseDialog match, file, true, &b
+    expect_browseDialog match, file, true, &b
   end
 
   def expect_navigate match, soft=false, &b
-	ue = UniqueExpect.new(match)
-	@expected_navigates << ue
-	b.call ->{ue.hit?}
+    ue = UniqueExpect.new(match)
+    @expected_navigates << ue
+    b.call ->{ue.hit?}
 
-	if @expected_navigates[-1] == ue
-	  raise "Expected navigateToUrl #{match.inspect} didn't occur!" unless soft
-	end
+    if @expected_navigates[-1] == ue
+      raise "Expected navigateToUrl #{match.inspect} didn't occur!" unless soft
+    end
   end
 
   def soft_expect_navigate match, &b
-	expect_navigate match, true, &b
+    expect_navigate match, true, &b
   end
 end
 
-# vim: set sw=2 ts=4:
+# vim: set sw=2 ts=8 noet:
