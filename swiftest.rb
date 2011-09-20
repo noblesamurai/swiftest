@@ -76,7 +76,15 @@ class Swiftest
 	@id = (descriptor/"application > id").text
 	@content_file = (descriptor/"application > initialWindow > content").inner_html
 
-	@expected_alerts, @expected_confirms, @expected_prompts, @expected_navigates, @expected_browseDialogs = [], [], [], [], []
+	clear_expects!
+  end
+
+  def clear_expects!
+	@expected_alerts = []
+	@expected_confirms = []
+	@expected_prompts = []
+	@expected_navigates = []
+	@expected_browseDialogs = []
   end
 
   # Bootstrap the application.
