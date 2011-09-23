@@ -16,6 +16,8 @@
 require File.join(File.dirname(__FILE__), 'screen')
 
 module SwiftestEnvironment
+  class NoScreenCurrentError < StandardError; end
+
   # To be called after all SwiftestScreen (and derived) instances
   # are set up.  Each instance is given a reference to 'top' (which
   # this environment knows about)
@@ -35,10 +37,10 @@ module SwiftestEnvironment
 	end
 	if not screen.current?
 	  # Any other screen current?
-	  raise "CONCLUSION: NO SCREEN IS CURRENT"
+	  raise NoScreenCurrentError, "CONCLUSION: NO SCREEN IS CURRENT"
 	end
       rescue Timeout::Error
-	raise "failed to switch_screen to #{screen.description} - not current"
+	raise NoScreenCurrentError, "failed to switch_screen to #{screen.description} - not current"
       end
     end
 
