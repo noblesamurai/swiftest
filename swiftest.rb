@@ -475,6 +475,8 @@ class Swiftest
   def soft_expect_navigate match, &b
     expect_navigate match, true, &b
   end
+
+  attr_reader :port
 end
 
 # vim: set sw=2 ts=8 noet:
