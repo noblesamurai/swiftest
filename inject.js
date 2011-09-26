@@ -398,9 +398,11 @@ top.Swiftest = function() {
 
   top.Swiftest.manual_pass = function() {
     send_bool(true);
+    flush();
   };
   top.Swiftest.manual_fail = function() {
     send_bool(false);
+    flush();
   };
 
   $(".swiftest-overlay-manual-pass").click(top.Swiftest.manual_pass);
