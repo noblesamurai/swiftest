@@ -37,12 +37,14 @@ class Swiftest
 
   def self.newOrRecover(*args)
     if @@storedState
+      @@lastWasNew = false
       return @@storedState[:swiftest] if @@storedState[:hash] == args.hash
 
       @@storedState[:swiftest].stop
       @@storedState = nil
     end
 
+    @@lastWasNew = true
     swiftest = new(args.hash, *args)
     @@storedState = {:hash => args.hash, :swiftest => swiftest}
     swiftest
@@ -59,6 +61,10 @@ class Swiftest
 
   def self.fileSuffix
     @@fileSuffix
+  end
+
+  def self.lastWasNew?
+    @@lastWasNew
   end
 
   def initialize(hash, descriptor_path, initial_content=nil, project_file="", *other_args)
