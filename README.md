@@ -244,9 +244,10 @@ Toy around with it, and use more evals and blocks.
 
 ## contributors
 
- - [Arlen Cuss](http://github.com/celtic) with [Noble Samurai](http://github.com/noblesamurai)
- - [Daniel Assange](http://github.com/lumifish) with [Noble Samurai](http://github.com/noblesamurai)
+ - [Anneli Cuss](http://github.com/celtic) with [Noble Samurai](http://github.com/noblesamurai)
+ - [Daniel Assange](http://github.com/lumifish) (link defunct) with [Noble Samurai](http://github.com/noblesamurai)
  - [Julian Thatcher](http://github.com/DaedalusRaistlin) with [Noble Samurai](http://github.com/noblesamurai)
+ - [Andrew Harris](http://github.com/aeh) with [Noble Samurai](http://github.com/noblesamurai)
  - You?
 
 ## license
