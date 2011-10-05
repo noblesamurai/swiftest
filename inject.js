@@ -410,10 +410,14 @@ top.Swiftest = function() {
 
   socket.addEventListener(flash.events.Event.CONNECT, function(e) {
     trace("connected");
+    readLoopTimeout = setTimeout(readLoop, 5000);
   });
 
   socket.addEventListener(flash.events.Event.CLOSE, function(e) {
     trace("closed!");
+
+    clearTimeout(readLoopTimeout);
+    readLoopTimeout = null;
   });
 
   socket.addEventListener(flash.events.IOErrorEvent.IO_ERROR, function(e) {
@@ -428,6 +432,16 @@ top.Swiftest = function() {
     buffer += socket.readUTFBytes(socket.bytesAvailable);
     process();
   });
+
+  var readLoopTimeout = null;
+  function readLoop() {
+    var ba = socket.bytesAvailable;
+    if (ba > 0) {
+      buffer += socket.readUTFBytes(ba);
+      process();
+    }
+    readLoopTimeout = setTimeout(readLoop, 5000);
+  }
 
   trace("connecting to 127.0.0.1:" + SWIFTEST_PORT);
   socket.connect("127.0.0.1", parseInt(SWIFTEST_PORT));
