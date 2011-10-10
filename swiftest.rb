@@ -83,6 +83,10 @@ class Swiftest
     @content_file = (descriptor/"application > initialWindow > content").inner_html
 
     clear_expects!
+
+    @sent_packets = 0
+    @pending_packets = {}
+    @received_packets = {}
   end
 
   def clear_expects!
@@ -153,8 +157,9 @@ class Swiftest
     end
 
     # Open up the modified descriptor with ADL if the user isn't starting it themselves.
+    cmd = "adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}"
     if !SELF_LAUNCH
-      @pid, @stdin, @stdout, @stderr = Open4.popen4("adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}")
+      @pid, @stdin, @stdout, @stderr = Open4.popen4(cmd)
       @started = true
       at_exit do stop end
 
@@ -209,7 +214,7 @@ class Swiftest
     end
 
     # Block for the client
-    STDERR.puts "engage!" if SELF_LAUNCH
+    STDERR.puts "engage with: #{cmd}" if SELF_LAUNCH
     @client = @server.accept
     STDERR.flush
     @started = true
@@ -238,8 +243,9 @@ class Swiftest
   end
 
   def send_command command, *args
-    send_str command
-    send_int args.length
+    pkt =
+      serialise_str(command) +
+      serialise_int(args.length)
 
     args.each do |arg|
       esc = arg.javascript_escape
@@ -247,30 +253,51 @@ class Swiftest
       case esc
       when String
 	# Ordinary string serialised JS. Will fit in nicely.
-	send_str "s"
-	send_str esc
+	pkt += serialise_str "s"
+	pkt += serialise_str esc
       when Numeric
 	# Back reference!
-	send_str "b"
-	send_int esc
+	pkt += serialise_str "b"
+	pkt += serialise_int esc
       else
 	raise "Unknown type of JS-escaped object #{esc}: #{esc.class}"
       end
     end
-    @client.flush
+
+    reply = send_packet(pkt)
+
+    consume_bool = lambda {
+      b = reply[0] == ?t
+      reply = reply[1..-1]
+      b
+    }
+
+    consume_int = lambda {
+      reply = reply.split ",", 2
+      i = reply.first.to_i
+      reply = reply.last
+      i
+    }
+
+    consume_str = lambda {
+      len = consume_int[]
+      s = reply[0...len]
+      reply = reply[len..-1]
+      s
+    }
 
     begin
-      success = recv_bool
-      confirms_or_alerts = recv_bool
+      success = consume_bool[]
+      confirms_or_alerts = consume_bool[]
     rescue Errno::ECONNRESET => e
       STDERR.puts "connection reset! sending #{command.inspect}, #{args.inspect}"
       exit 250
     end
 
-    raise JavascriptError, recv_str unless success
+    raise JavascriptError, consume_str[] unless success
 
     begin
-      js = recv_str
+      js = consume_str[]
       r = eval(js)
     rescue SyntaxError => e
       STDERR.puts "got a syntax error while evaling #{js.inspect}"
@@ -329,29 +356,39 @@ class Swiftest
     r
   end
 
-  def send_int int
-    begin
-      @client.write int.to_s + ","
-    rescue Errno::EPIPE
-      exit 250
-    end
+  def send_packet pkt
+    @sent_packets += 1
+    id = @sent_packets
+
+    @pending_packets[id] = pkt
+
+    STDERR.puts "writing packet #{"#{id},#{pkt.length},#{pkt}".inspect}"
+    STDERR.flush
+    @client.write "#{id},#{pkt.length},#{pkt}"
+    @client.flush
+
+    reply = wait_for_packet(id)
+    @pending_packets.delete id
+    reply
   end
 
-  def send_str str
-    begin
-      send_int str.length
-      @client.write str
-    rescue Errno::EPIPE
-      exit 250
-    end
+  def receive_packet
+    id = recv_int
+    len = recv_int
+    @received_packets[id] = @client.read(len)
   end
 
-  def recv_bool
-    begin
-      @client.read(1) == "t"
-    rescue Errno::EPIPE
-      exit 250
-    end
+  def wait_for_packet id
+    receive_packet while @received_packets[id].nil?
+    @received_packets.delete id
+  end
+
+  def serialise_int int
+    "#{int},"
+  end
+
+  def serialise_str str
+    serialise_int(str.length) + str
   end
 
   def recv_int
@@ -359,18 +396,6 @@ class Swiftest
       buf = ""
       buf += @client.read(1) while buf[-1] != ?,
       buf[0..-2].to_i
-    rescue Errno::EPIPE
-      exit 250
-    end
-  end
-
-  def recv_str
-    begin
-      len = recv_int
-      buf = ""
-      buf += @client.read(len - buf.length) while buf.length < len
-
-      buf
     rescue Errno::EPIPE
       exit 250
     end

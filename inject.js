@@ -27,7 +27,6 @@ top.Swiftest = function() {
 
   var socket = new flash.net.Socket();
   var buffer = "", expectBuffer = "";
-  var state = 'idle';
 
   var state_fncall_db = [];
 
@@ -192,20 +191,29 @@ top.Swiftest = function() {
   var redefined_builtins = false;
 
   function process() {
-    var insufficientData = false;
-
     expectBuffer = buffer;
-    while (!insufficientData) {
+
+    while (true) {
       buffer = expectBuffer;
+
       try {
-	processors[state]();
+	var pkt_no = expect_int();
+	var pkt_len = expect_int();
+	var pkt = expect_str(pkt_len);
       } catch (e) {
-	if (e == insufficientDataError) {
-	  insufficientData = true;
+	if (e == insufficientDataError)
 	  expectBuffer = buffer;
-	} else {
-	  trace("error occurred while processing state " + state + ": " + e);
-	}
+	else
+	  trace("error occurred while fetching packet: " + e);
+	
+	return;
+      }
+
+      try {
+	processPacket(pkt_no, pkt);
+      } catch (e) {
+	trace("error occured while processing packet " + pkt_no + " (" + pkt + "): " + e);
+	return;
       }
     }
   }
@@ -216,46 +224,62 @@ top.Swiftest = function() {
 
   top.Swiftest.get_back_ref = get_back_ref;
 
-  var processors = {
-    'idle': function() {
-      var command = expect_str();
-      var argc = expect_int(),
-	  args = [];
+  function processPacket(no, pkt) {
+    function consume_int() {
+      var i = parseInt(pkt);
+      pkt = pkt.substr(pkt.indexOf(",") + 1);
+      return i;
+    }
 
-      while (argc > 0) {
-	var arg_type = expect_str();
-	switch (arg_type) {
-	case "s":
-	  // Plain JSON arg.
-	  var result = expect_str();
-	  result = $.parseJSON(result);
-	  break;
-	case "b":
-	  // Back reference.
-	  var result = get_back_ref(expect_int());
-	  break;
-	default:
-	  throw new Error("No idea what type of argument '" + arg_type + "' is!");
-	}
+    function consume_str() {
+      var len = consume_int();
+      var s = pkt.substr(0, len);
+      pkt = pkt.substr(len);
+      return s;
+    }
 
-	args.push(result);
-	argc--;
+    var command = consume_str();
+    var argc = consume_int(),
+	args = [];
+
+    while (argc > 0) {
+      var arg_type = consume_str();
+      switch (arg_type) {
+      case "s":
+	// Plain JSON arg.
+	var result = consume_str();
+	result = $.parseJSON(result);
+	break;
+      case "b":
+	// Back reference.
+	var result = get_back_ref(consume_int());
+	break;
+      default:
+	throw new Error("No idea what type of argument '" + arg_type + "' is!");
       }
 
-      var success = false;
-      try {
-	var result = commands[command].apply(this, args);
-	success = true;
-      } catch (e) {
-	result = "" + e + " (" + e.sourceURL + ":" + e.line + "(" + e.sourceId + "))";
-      }
+      args.push(result);
+      argc--;
+    }
 
-      send_bool(success);
-      send_bool(top.Swiftest.alerts.length > 0 || top.Swiftest.confirms.length > 0 || top.Swiftest.prompts.length > 0 || top.Swiftest.navigates.length > 0 || top.Swiftest.browseDialogs.length > 0);
-      send_str(ruby_escape(result));
-      flush();
-    },
-  };
+    var success = false;
+    try {
+      var result = commands[command].apply(this, args);
+      success = true;
+    } catch (e) {
+      result = "" + e + " (" + e.sourceURL + ":" + e.line + "(" + e.sourceId + "))";
+    }
+
+    var reply =
+      serialise_bool(success) +
+      serialise_bool(
+	top.Swiftest.alerts.length || top.Swiftest.confirms.length ||
+	top.Swiftest.prompts.length || top.Swiftest.navigates.length ||
+	top.Swiftest.browseDialogs.length) +
+      serialise_str(ruby_escape(result));
+
+    send_packet(no, reply);
+  }
 
   function path_call(target, path_el) {
     var fn = path_el[0], args = path_el[1];
@@ -368,41 +392,35 @@ top.Swiftest = function() {
     return i;
   }
 
-  function expect_str() {
-    var len = expect_int();
+  function expect_str(len) {
     if (expectBuffer.length < len) throw insufficientDataError;
     var s = expectBuffer.substr(0, len);
     expectBuffer = expectBuffer.substr(len);
     return s;
   }
 
-  function send_int(i) {
-    socket.writeUTFBytes("" + i + ",");
+  function serialise_bool(b) {
+    return (!!b) ? "t" : "f";
   }
 
-  function send_bool(i) {
-    socket.writeUTFBytes(i ? "t" : "f");
+  function serialise_str(s) {
+    return serialise_int(s.length) + s;
   }
 
-  function send_str(str) {
-    var bytearr = new flash.utils.ByteArray();
-    bytearr.writeUTFBytes(str);
-
-    send_int(bytearr.length);
-    socket.writeBytes(bytearr);
+  function serialise_int(i) {
+    return "" + i + ",";
   }
 
-  function flush() {
+  function send_packet(no, pkt) {
+    socket.writeUTFBytes(serialise_int(no) + serialise_str(pkt));
     socket.flush();
   }
 
   top.Swiftest.manual_pass = function() {
     send_bool(true);
-    flush();
   };
   top.Swiftest.manual_fail = function() {
     send_bool(false);
-    flush();
   };
 
   $(".swiftest-overlay-manual-pass").click(top.Swiftest.manual_pass);
