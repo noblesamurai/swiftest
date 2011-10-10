@@ -28,6 +28,7 @@ require File.join(SWIFTEST_BASE, 'swiftest/jsescape')
 class Swiftest
   class AlreadyStartedError < StandardError; end
   class JavascriptError < StandardError; end
+  class OtherEndDisappearedError < StandardError; end
   include SwiftestCommands
 
   SELF_LAUNCH = ENV.include?("SWIFTEST_LAUNCH") && ENV["SWIFTEST_LAUNCH"].downcase.strip == "self"
@@ -362,31 +363,62 @@ class Swiftest
 
     @pending_packets[id] = pkt
 
+    send_packet_phys id, pkt
+    wait_for_packet id
+  end
+
+  def send_packet_phys id, pkt
     @client.write(serialise_int(id) + serialise_str(pkt))
     @client.flush
+  rescue OtherEndDisappearedError => e
+    STDERR.puts "OEDE in send_packet_phys"
+    reaccept_resend rescue STDERR.puts "WTFFFFFFFFFFFFF #$!"
+  rescue Errno::ECONNRESET
+    STDERR.puts "ECONNRESET in send_packet_phys"
+    reaccept_resend rescue STDERR.puts "WTFFFFFFFFFFFFF #$!"
+  end
 
-    reply = wait_for_packet(id)
-    @pending_packets.delete id
-    reply
+  def wait_for_packet id
+    while @received_packets[id].nil?
+      begin
+	receive_packet 
+      rescue => e
+	STDERR.puts "ERROR in receive_packet: #{e.inspect}"
+      end
+    end
+    @received_packets.delete id
   end
 
   def receive_packet
     id = recv_int
     if id == 0
-      STDERR.puts "got heartbeat"
+      kind = recv_int
+      STDERR.puts "got system msg #{id}"
       STDERR.flush
-      @client.write(serialise_int(0))
+      @client.write(serialise_int(0) + serialise_int(0))
       @client.flush
       return
     end
 
     len = recv_int
-    @received_packets[id] = @client.read(len)
+    data = @client.read len
+    raise OtherEndDisappearedError if data.length != len
+    @received_packets[id] = data
+  rescue OtherEndDisappearedError => e
+    STDERR.puts "OEDE in receive_packet"
+    reaccept_resend rescue STDERR.puts "WTFFFFFFFFFFFFF #$!"
   end
 
-  def wait_for_packet id
-    receive_packet while @received_packets[id].nil?
-    @received_packets.delete id
+  def reaccept_resend
+    @client.close rescue false
+    STDERR.puts "reaccept_resend START"
+    @client = @server.accept
+    STDERR.puts "got #{@client.inspect}"
+    @pending_packets.each do |id, pkt|
+      STDERR.puts "resending packet #{id} = #{pkt}"
+      send_packet_phys id, pkt
+    end
+    STDERR.puts "reaccept_resend FINISH"
   end
 
   def serialise_int int
@@ -398,13 +430,15 @@ class Swiftest
   end
 
   def recv_int
-    begin
-      buf = ""
-      buf += @client.read(1) while buf[-1] != ?,
-      buf[0..-2].to_i
-    rescue Errno::EPIPE
-      exit 250
+    buf = ""
+    while buf[-1] != ?,
+      b = @client.read 1
+      raise OtherEndDisappearedError if b == nil
+      buf += b
     end
+    buf[0..-2].to_i
+  rescue Errno::EPIPE
+    exit 250
   end
 
   def cleanup

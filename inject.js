@@ -16,7 +16,7 @@
  */
 
 top.Swiftest = function() {
-    var HEARTBEAT_FREQUENCY = 5000,
+    var HEARTBEAT_FREQUENCY = 2500,
 	HEARTBEAT_RESPONSE_WAIT = 5000;
 
     var flash = window.runtime.flash;
@@ -203,8 +203,15 @@ top.Swiftest = function() {
 		var pkt_no = expect_int();
 
 		if (pkt_no == 0) {
-		    heartbeatReceived();
-		    continue;
+		    var kind = expect_int();
+
+		    if (kind == 0) {
+			heartbeatReceived();
+			continue;
+		    } else {
+			trace("error occurred while fetching system message: unknown kind " + kind);
+			continue;
+		    }
 		}
 
 		var pkt_len = expect_int();
@@ -233,7 +240,13 @@ top.Swiftest = function() {
 
     top.Swiftest.get_back_ref = get_back_ref;
 
+    var replies = {};
     function processPacket(no, pkt) {
+	if (replies[no] !== undefined) {
+	    send_packet(no, replies[no]);
+	    return;
+	}
+
 	function consume_int() {
 	    var i = parseInt(pkt);
 	    pkt = pkt.substr(pkt.indexOf(",") + 1);
@@ -289,6 +302,7 @@ top.Swiftest = function() {
 		top.Swiftest.browseDialogs.length) +
 	    serialise_str(ruby_escape(result));
 
+	replies[no] = reply;
 	send_packet(no, reply);
     }
 
@@ -420,9 +434,17 @@ top.Swiftest = function() {
 	return "" + i + ",";
     }
 
+    var __closedOne = false
     function send_packet(no, pkt) {
 	socket.writeUTFBytes(serialise_int(no) + serialise_str(pkt));
 	socket.flush();
+
+	if (!__closedOne) {
+	    __closedOne = true; 
+	    setTimeout(function() {
+		socket.close(); 
+	    }, 1000);
+	}
     }
 
     top.Swiftest.manual_pass = function() {
@@ -435,10 +457,21 @@ top.Swiftest = function() {
     $(".swiftest-overlay-manual-pass").click(top.Swiftest.manual_pass);
     $(".swiftest-overlay-manual-fail").click(top.Swiftest.manual_fail);
 
+    var reconnect = false;
     socket.addEventListener(flash.events.Event.CONNECT, function(e) {
 	trace("connected");
 	readLoopTimeout = setTimeout(readLoop, 5000);
 	heartbeatTimeout = setTimeout(heartbeat, HEARTBEAT_FREQUENCY);
+
+	if (reconnect) {
+	    trace("resending packets");
+	    // Resend ALL the packets.
+	    for (var no in replies) {
+		trace("resending packet " + no + ": " + replies[no]);
+		send_packet(no, replies[no]);
+	    }
+	}
+	reconnect = true;
     });
 
     socket.addEventListener(flash.events.Event.CLOSE, function(e) {
@@ -467,10 +500,14 @@ top.Swiftest = function() {
 
     var readLoopTimeout = null;
     function readLoop() {
-	var ba = socket.bytesAvailable;
-	if (ba > 0) {
-	    buffer += socket.readUTFBytes(ba);
-	    process();
+	try {
+	    var ba = socket.bytesAvailable;
+	    if (ba > 0) {
+		buffer += socket.readUTFBytes(ba);
+		process();
+	    }
+	} catch (e) {
+	    trace("error reading in readLoop!? " + e);
 	}
 	readLoopTimeout = setTimeout(readLoop, 5000);
     }
@@ -478,12 +515,19 @@ top.Swiftest = function() {
     var heartbeatFailTimeout = null;
     function heartbeatFail() {
 	trace("heartbeat failed!!");
+	trace("try a reconnect");
+	try { socket.close(); } catch (e) {}
+	socket.connect("127.0.0.1", parseInt(SWIFTEST_PORT));
     }
 
     var heartbeatTimeout = null;
     function heartbeat() {
-	socket.writeUTFBytes(serialise_int(0));
-	socket.flush();
+	try {
+	    socket.writeUTFBytes(serialise_int(0) + serialise_int(0));
+	    socket.flush();
+	} catch (e) {
+	    trace("error writing heartbeat!? " + e);
+	}
 	heartbeatTimeout = null;
 	heartbeatFailTimeout = setTimeout(heartbeatFail, HEARTBEAT_RESPONSE_WAIT);
 	trace("sent heartbeat");
