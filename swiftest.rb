@@ -362,9 +362,7 @@ class Swiftest
 
     @pending_packets[id] = pkt
 
-    STDERR.puts "writing packet #{"#{id},#{pkt.length},#{pkt}".inspect}"
-    STDERR.flush
-    @client.write "#{id},#{pkt.length},#{pkt}"
+    @client.write(serialise_int(id) + serialise_str(pkt))
     @client.flush
 
     reply = wait_for_packet(id)
@@ -374,6 +372,14 @@ class Swiftest
 
   def receive_packet
     id = recv_int
+    if id == 0
+      STDERR.puts "got heartbeat"
+      STDERR.flush
+      @client.write(serialise_int(0))
+      @client.flush
+      return
+    end
+
     len = recv_int
     @received_packets[id] = @client.read(len)
   end

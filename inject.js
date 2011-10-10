@@ -16,6 +16,9 @@
  */
 
 top.Swiftest = function() {
+  var HEARTBEAT_FREQUENCY = 5000,
+      HEARTBEAT_RESPONSE_WAIT = 5000;
+
   var flash = window.runtime.flash;
   var trace = function(s) {
 	window.runtime.trace("Swiftest: " + s);
@@ -198,6 +201,12 @@ top.Swiftest = function() {
 
       try {
 	var pkt_no = expect_int();
+
+	if (pkt_no == 0) {
+	  heartbeatReceived();
+	  continue;
+	}
+
 	var pkt_len = expect_int();
 	var pkt = expect_str(pkt_len);
       } catch (e) {
@@ -429,6 +438,7 @@ top.Swiftest = function() {
   socket.addEventListener(flash.events.Event.CONNECT, function(e) {
     trace("connected");
     readLoopTimeout = setTimeout(readLoop, 5000);
+    heartbeatTimeout = setTimeout(heartbeat, HEARTBEAT_FREQUENCY);
   });
 
   socket.addEventListener(flash.events.Event.CLOSE, function(e) {
@@ -436,6 +446,10 @@ top.Swiftest = function() {
 
     clearTimeout(readLoopTimeout);
     readLoopTimeout = null;
+    clearTimeout(heartbeatTimeout);
+    heartbeatTimeout = null;
+    clearTimeout(heartbeatFailTimeout);
+    heartbeatFailTimeout = null;
   });
 
   socket.addEventListener(flash.events.IOErrorEvent.IO_ERROR, function(e) {
@@ -459,6 +473,27 @@ top.Swiftest = function() {
       process();
     }
     readLoopTimeout = setTimeout(readLoop, 5000);
+  }
+
+  var heartbeatFailTimeout = null;
+  function heartbeatFail() {
+    trace("heartbeat failed!!");
+  }
+
+  var heartbeatTimeout = null;
+  function heartbeat() {
+    socket.writeUTFBytes(serialise_int(0));
+    socket.flush();
+    heartbeatTimeout = null;
+    heartbeatFailTimeout = setTimeout(heartbeatFail, HEARTBEAT_RESPONSE_WAIT);
+    trace("sent heartbeat");
+  }
+
+  function heartbeatReceived() {
+    trace("got heartbeat! rescheduling");
+    clearTimeout(heartbeatFailTimeout);
+    heartbeatFailTimeout = null;
+    heartbeatTimeout = setTimeout(heartbeat, HEARTBEAT_FREQUENCY);
   }
 
   trace("connecting to 127.0.0.1:" + SWIFTEST_PORT);
