@@ -88,6 +88,8 @@ class Swiftest
     @sent_packets = 0
     @pending_packets = {}
     @received_packets = {}
+    @last_received = 0
+    @last_processed = 0
   end
 
   def clear_expects!
@@ -386,16 +388,19 @@ class Swiftest
 	STDERR.puts "ERROR in receive_packet: #{e.inspect}"
       end
     end
+    @last_processed = id
     @received_packets.delete id
   end
 
   def receive_packet
     id = recv_int
     if id == 0
-      kind = recv_int
-      STDERR.puts "got system msg #{id}"
+      @last_received = recv_int
+      @pending_packets.reject! {|no,pkt| no < @last_received}
+
+      STDERR.puts "heartbeat says they last received #@last_received, telling them we last processed #@last_processed (pp:#{@pending_packets.length})"
       STDERR.flush
-      @client.write(serialise_int(0) + serialise_int(0))
+      @client.write(serialise_int(0) + serialise_int(@last_processed))
       @client.flush
       return
     end
@@ -415,8 +420,12 @@ class Swiftest
     @client = @server.accept
     STDERR.puts "got #{@client.inspect}"
     @pending_packets.each do |id, pkt|
-      STDERR.puts "resending packet #{id} = #{pkt}"
-      send_packet_phys id, pkt
+      if id > @last_received
+	STDERR.puts "resending packet #{id} = #{pkt}"
+	send_packet_phys id, pkt
+      else
+	STDERR.puts "not resending packet #{id} (they last received #@last_received)"
+      end
     end
     STDERR.puts "reaccept_resend FINISH"
   end

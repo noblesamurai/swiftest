@@ -193,6 +193,7 @@ top.Swiftest = function() {
 
     var redefined_builtins = false;
 
+    var last_received = 0;
     function process() {
 	expectBuffer = buffer;
 
@@ -203,15 +204,18 @@ top.Swiftest = function() {
 		var pkt_no = expect_int();
 
 		if (pkt_no == 0) {
-		    var kind = expect_int();
+		    var lr = expect_int();
+		    last_received = lr;
 
-		    if (kind == 0) {
-			heartbeatReceived();
-			continue;
-		    } else {
-			trace("error occurred while fetching system message: unknown kind " + kind);
-			continue;
-		    }
+		    var no_replies = 0;
+		    for (var no in replies)
+			if (no < last_received)
+			    delete replies[no];
+			else
+			    ++no_replies;
+		    trace("heartbeat said they last received " + lr + " (replies:" + no_replies + ")");
+		    heartbeatReceived();
+		    continue;
 		}
 
 		var pkt_len = expect_int();
@@ -241,6 +245,7 @@ top.Swiftest = function() {
     top.Swiftest.get_back_ref = get_back_ref;
 
     var replies = {};
+    var last_processed = 0;
     function processPacket(no, pkt) {
 	if (replies[no] !== undefined) {
 	    send_packet(no, replies[no]);
@@ -303,6 +308,8 @@ top.Swiftest = function() {
 	    serialise_str(ruby_escape(result));
 
 	replies[no] = reply;
+	if (no > last_processed)
+	    last_processed = no;
 	send_packet(no, reply);
     }
 
@@ -434,17 +441,9 @@ top.Swiftest = function() {
 	return "" + i + ",";
     }
 
-    var __closedOne = false
     function send_packet(no, pkt) {
 	socket.writeUTFBytes(serialise_int(no) + serialise_str(pkt));
 	socket.flush();
-
-	if (!__closedOne) {
-	    __closedOne = true; 
-	    setTimeout(function() {
-		socket.close(); 
-	    }, 1000);
-	}
     }
 
     top.Swiftest.manual_pass = function() {
@@ -465,10 +464,14 @@ top.Swiftest = function() {
 
 	if (reconnect) {
 	    trace("resending packets");
-	    // Resend ALL the packets.
+	    // Resend packets they may have missed.
 	    for (var no in replies) {
-		trace("resending packet " + no + ": " + replies[no]);
-		send_packet(no, replies[no]);
+		if (no > last_received) {
+		    trace("resending packet " + no + ": " + replies[no]);
+		    send_packet(no, replies[no]);
+		} else {
+		    trace("not resending packet " + no + " (they have " + last_received + ")");
+		}
 	    }
 	}
 	reconnect = true;
@@ -523,7 +526,7 @@ top.Swiftest = function() {
     var heartbeatTimeout = null;
     function heartbeat() {
 	try {
-	    socket.writeUTFBytes(serialise_int(0) + serialise_int(0));
+	    socket.writeUTFBytes(serialise_int(0) + serialise_int(last_processed));
 	    socket.flush();
 	} catch (e) {
 	    trace("error writing heartbeat!? " + e);
