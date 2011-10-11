@@ -227,6 +227,8 @@ class Swiftest
       # STDERR.puts "process #@pid not dying; killing (not really an error state with AIR)"
       Process.kill "KILL", @pid rescue false
       Process.wait @pid
+    rescue Errno::ECHILD
+      STDERR.puts "uhm. ECHILD in #stop?"
     end
 
     @reader_thread.join if @reader_thread
