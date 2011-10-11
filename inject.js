@@ -193,7 +193,6 @@ top.Swiftest = function() {
 
     var last_received = 0;
     function process(bytes) {
-	trace("full packet: " + bytes.readUTFBytes(bytes.bytesAvailable));
 	bytes.position = 0;
 
 	var pkt_no = bytes.readUnsignedInt();
@@ -416,42 +415,6 @@ top.Swiftest = function() {
     $(".swiftest-overlay-manual-pass").click(top.Swiftest.manual_pass);
     $(".swiftest-overlay-manual-fail").click(top.Swiftest.manual_fail);
 
-    var reconnect = false;
-    /*
-    socket.addEventListener(flash.events.Event.CONNECT, function(e) {
-	trace("connected");
-	readLoopTimeout = setTimeout(readLoop, 5000);
-	heartbeatTimeout = setTimeout(heartbeat, HEARTBEAT_FREQUENCY);
-
-	if (reconnect) {
-	    trace("resending packets");
-	    // Resend packets they may have missed.
-	    for (var no in replies) {
-		if (no > last_received) {
-		    trace("resending packet " + no + ": " + replies[no]);
-		    send_packet(no, replies[no]);
-		} else {
-		    trace("not resending packet " + no + " (they have " + last_received + ")");
-		}
-	    }
-	}
-	reconnect = true;
-    });
-    */
-
-    /*
-    socket.addEventListener(flash.events.Event.CLOSE, function(e) {
-	trace("closed!");
-
-	clearTimeout(readLoopTimeout);
-	readLoopTimeout = null;
-	clearTimeout(heartbeatTimeout);
-	heartbeatTimeout = null;
-	clearTimeout(heartbeatFailTimeout);
-	heartbeatFailTimeout = null;
-    });
-    */
-
     socket.addEventListener(flash.events.IOErrorEvent.IO_ERROR, function(e) {
 	trace("IO error!");
     });
@@ -468,8 +431,8 @@ top.Swiftest = function() {
     var heartbeatFailCount = 0;
     function heartbeatFail() {
 	trace("heartbeat failed!! (fail #" + (++heartbeatFailCount) + ")");
-	if (heartbeatFailCount == HEARTBEAT_FAIL_LIMIT)
-	    air.NativeApplication.nativeApplication.exit();
+	if (heartbeatFailCount >= HEARTBEAT_FAIL_LIMIT)
+	    top.air.NativeApplication.nativeApplication.exit();
 	heartbeat();
     }
 
@@ -490,6 +453,7 @@ top.Swiftest = function() {
 	trace("got heartbeat! rescheduling");
 	clearTimeout(heartbeatFailTimeout);
 	heartbeatFailTimeout = null;
+	heartbeatFailCount = 0;
 	heartbeatTimeout = setTimeout(heartbeat, HEARTBEAT_FREQUENCY);
     }
 
