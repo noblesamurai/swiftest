@@ -257,7 +257,13 @@ class Swiftest
       end
     end
 
-    reply = send_packet(pkt)
+    reply =
+      begin
+	send_packet(pkt)
+      rescue Errno::ECONNRESET
+	STDERR.puts "connection reset! sending #{pkt.inspect}"
+	exit 250
+      end
 
     success, confirms_or_alerts =
       reply[0].ord != 0,
@@ -338,6 +344,7 @@ class Swiftest
   end
 
   def send_packet_phys id, pkt
+    pkt = pkt.force_encoding("ASCII-8BIT")
     pkt = serialise_int(id) + pkt
     STDERR.puts "pkt.length > 65535 (= #{pkt.length})" if pkt.length > 65535
     @server.send pkt, 0
@@ -345,26 +352,29 @@ class Swiftest
 
   def wait_for_packet id
     while @received_packets[id].nil?
-      begin
-	receive_packet 
-      rescue => e
-	STDERR.puts "ERROR in receive_packet: #{e.inspect}"
-      end
+      receive_packet 
     end
     @last_processed = id
     @received_packets.delete id
   end
 
   def receive_packet
+    STDERR.puts "begin recvfrom"
     pkt, addr = @server.recvfrom 65536
+    STDERR.puts "got #{pkt.inspect} from #{addr[3]}:#{addr[1]}"
 
     id = pkt.unpack('N').first
     pkt = pkt[4..-1]
     if id == 0
       @last_received = pkt.unpack('N').first
-      @pending_packets.reject! {|no,pkt| no < @last_received}
-
       STDERR.puts "heartbeat says they last received #@last_received, "
+
+      @pending_packets.reject! {|no,pkt| no <= @last_received}
+      @pending_packets.each do |no,pkt|
+	STDERR.puts "resending pkt #{no}: #{pkt.inspect}"
+	send_packet_phys no, pkt
+      end
+
       STDERR.puts "telling them we last processed #@last_processed (pp:#{@pending_packets.length})"
       STDERR.flush
 
@@ -380,7 +390,7 @@ class Swiftest
   end
 
   def serialise_str str
-    [str.length].pack('n') + str
+    [str.bytes.count].pack('n') + str
   end
 
   def recv_int

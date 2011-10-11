@@ -18,7 +18,8 @@
 var SWIFTEST_PORT = top.window.runtime.com.noblesamurai.Application.swiftestPort;
 top.Swiftest = function() {
     var HEARTBEAT_FREQUENCY = 2500,
-	HEARTBEAT_RESPONSE_WAIT = 5000;
+	HEARTBEAT_RESPONSE_WAIT = 5000,
+	HEARTBEAT_FAIL_LIMIT = 10;
 
     var flash = window.runtime.flash;
     var trace = function(s) {
@@ -192,6 +193,9 @@ top.Swiftest = function() {
 
     var last_received = 0;
     function process(bytes) {
+	trace("full packet: " + bytes.readUTFBytes(bytes.bytesAvailable));
+	bytes.position = 0;
+
 	var pkt_no = bytes.readUnsignedInt();
 
 	if (pkt_no == 0) {
@@ -199,11 +203,15 @@ top.Swiftest = function() {
 	    last_received = lr;
 
 	    var no_replies = 0;
-	    for (var no in replies)
-		if (no < last_received)
+	    for (var no in replies) {
+		if (no <= last_received) {
 		    delete replies[no];
-		else
+		} else {
+		    send_packet(replies[no]);
 		    ++no_replies;
+		}
+	    }
+
 	    trace("heartbeat said they last received " + lr + " (replies:" + no_replies + ")");
 	    heartbeatReceived();
 	    return;
@@ -212,7 +220,7 @@ top.Swiftest = function() {
 	try {
 	    processPacket(pkt_no, bytes);
 	} catch (e) {
-	    trace("error occured while processing packet " + pkt_no + " (" + pkt + "): " + e);
+	    trace("error occured while processing packet " + pkt_no + " (" + bytes.readUTFBytes(bytes.bytesAvailable) + "): " + e);
 	    return;
 	}
     }
@@ -227,7 +235,7 @@ top.Swiftest = function() {
     var last_processed = 0;
     function processPacket(no, bytes) {
 	if (replies[no] !== undefined) {
-	    send_packet(no, replies[no]);
+	    send_packet(replies[no]);
 	    return;
 	}
 
@@ -460,6 +468,8 @@ top.Swiftest = function() {
     var heartbeatFailCount = 0;
     function heartbeatFail() {
 	trace("heartbeat failed!! (fail #" + (++heartbeatFailCount) + ")");
+	if (heartbeatFailCount == HEARTBEAT_FAIL_LIMIT)
+	    air.NativeApplication.nativeApplication.exit();
 	heartbeat();
     }
 
