@@ -359,9 +359,7 @@ class Swiftest
   end
 
   def receive_packet
-    STDERR.puts "begin recvfrom"
     pkt, addr = @server.recvfrom 65536
-    STDERR.puts "got #{pkt.inspect} from #{addr[3]}:#{addr[1]}"
 
     id = pkt.unpack('N').first
     pkt = pkt[4..-1]
