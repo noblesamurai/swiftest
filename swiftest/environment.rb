@@ -33,7 +33,7 @@ module SwiftestEnvironment
       begin
 	Timeout.timeout(wait_for_switch) do
 	  sleep 1.0
-	  sleep 1.0 while @screen.current? if @screen
+	  sleep 1.0 while not screen.current?
 	end
 	if not screen.current?
 	  # Any other screen current?

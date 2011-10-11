@@ -367,6 +367,8 @@ class Swiftest
       @last_received = pkt.unpack('N').first
       STDERR.puts "heartbeat says they last received #@last_received, "
 
+      @server.send(serialise_int(0) + serialise_int(@last_processed), 0)
+
       @pending_packets.reject! {|no,pkt| no <= @last_received}
       @pending_packets.each do |no,pkt|
 	STDERR.puts "resending pkt #{no}: #{pkt.inspect}"
@@ -375,8 +377,6 @@ class Swiftest
 
       STDERR.puts "telling them we last processed #@last_processed (pp:#{@pending_packets.length})"
       STDERR.flush
-
-      @server.send(serialise_int(0) + serialise_int(@last_processed), 0)
       return
     end
 
