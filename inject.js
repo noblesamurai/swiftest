@@ -15,8 +15,16 @@
  * along with Swiftest.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-var SWIFTEST_PORT = top.window.runtime.com.noblesamurai.Application.swiftestPort;
+top.yesIWASHERE = true;
+
+top.oldalert = top.alert;
+
+try {
+
 top.Swiftest = function() {
+    try {
+    var SWIFTEST_PORT = top.window.runtime.com.noblesamurai.Application.swiftestPort;
+
     var HEARTBEAT_FREQUENCY = 2500,
 	HEARTBEAT_RESPONSE_WAIT = 5000,
 	HEARTBEAT_FAIL_LIMIT = 10;
@@ -429,14 +437,8 @@ top.Swiftest = function() {
 
     var heartbeatFailTimeout = null;
     var heartbeatFailCount = 0;
-    function heartbeatFail() {
-	trace("heartbeat failed!! (fail #" + (++heartbeatFailCount) + ")");
-	if (heartbeatFailCount >= HEARTBEAT_FAIL_LIMIT)
-	    top.air.NativeApplication.nativeApplication.exit();
-	heartbeat();
-    }
-
     var heartbeatTimeout = null;
+
     function heartbeat() {
 	var bytes = new flash.utils.ByteArray();
 	bytes.writeUnsignedInt(0);
@@ -444,17 +446,35 @@ top.Swiftest = function() {
 
 	socket.send(bytes);
 
+	clearTimeout(heartbeatTimeout);
+	clearTimeout(heartbeatFailTimeout);
 	heartbeatTimeout = null;
 	heartbeatFailTimeout = setTimeout(heartbeatFail, HEARTBEAT_RESPONSE_WAIT);
 	trace("sent heartbeat");
     }
 
+    function scheduleHeartbeat() {
+	clearTimeout(heartbeatFailTimeout);
+	clearTimeout(heartbeatTimeout);
+	heartbeatFailTimeout = null;
+	heartbeatTimeout = setTimeout(heartbeat, HEARTBEAT_FREQUENCY);
+    }
+
+    function heartbeatFail() {
+	trace("heartbeat failed!! (fail #" + (++heartbeatFailCount) + ")");
+	if (heartbeatFailCount >= HEARTBEAT_FAIL_LIMIT) {
+	    trace("fail count over limit (" + HEARTBEAT_FAIL_LIMIT + "): good bye");
+	    top.air.NativeApplication.nativeApplication.exit();
+	}
+
+	scheduleHeartbeat();
+    }
+
     function heartbeatReceived() {
 	trace("got heartbeat! rescheduling");
-	clearTimeout(heartbeatFailTimeout);
-	heartbeatFailTimeout = null;
 	heartbeatFailCount = 0;
-	heartbeatTimeout = setTimeout(heartbeat, HEARTBEAT_FREQUENCY);
+
+	scheduleHeartbeat();
     }
 
     trace("trying to reach out to 127.0.0.1:" + SWIFTEST_PORT);
@@ -463,8 +483,12 @@ top.Swiftest = function() {
 
     heartbeat();
     socket.receive();
+    } catch (e) { top.oldalert("1" + e); }
 };
+    } catch (e) { top.oldalert("2" + e); }
 
+try {
 $(top.Swiftest);
+    } catch (e) { top.oldalert("3" + e); }
 
 // vim: set sw=4 ts=8 noet:

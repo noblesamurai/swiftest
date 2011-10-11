@@ -607,9 +607,19 @@ class SwiftestScreen
   # item is returned.
   def locate(selector, base=nil, allow_nil=false, &disambiguator)
     found = element_locate(selector, base)
-
     len = found.length
-    raise ElementNotFoundError, "Locator found nothing for \"#{selector}\"#{base && ", with base #{base.inspect}"}" if len == 0 and not allow_nil
+
+    if len == 0 and not allow_nil
+      counter = 0
+      while counter < 2 and len == 0
+	sleep 0.2
+	counter += 2
+	found = element_locate(selector, base)
+	len = found.length
+      end
+
+      raise ElementNotFoundError, "Locator found nothing for \"#{selector}\"#{base && ", with base #{base.inspect}"}" if len == 0
+    end
 
     if disambiguator
       # Optimised for minimum number of calls into JavaScript.

@@ -115,12 +115,14 @@ class Swiftest
     # We add the script tags to the end of the </head> tag and then place it in position for the new
     # (doctored) content file.	Don't just append it, a <script/> tag outside of the normal place
     # can kill AIR!
-    new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub(/<\/\s*head\s*>/i, "
-	<script type='text/javascript' src='inject.swiftest.js'></script>
+    new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub(/<\/\s*head\s*>/i) {"
+	<script type='text/javascript'>//<![CDATA[
+	  #{File.read File.join(SWIFTEST_BASE, "inject.js")}
+	//]]></script>
 	<style type='text/css'>
 	  #{File.read(File.join(SWIFTEST_BASE, "inject.css")).gsub("YBANNERB64", bannerb64).gsub("RBANNERB64", rbannerb64)}
 	</style>
-      </head>").gsub(/(<\s*body[^>]*>)/i, "\\1\<div id='swiftest-overlay-ff'>
+      </head>"}.gsub(/(<\s*body[^>]*>)/i, "\\1\<div id='swiftest-overlay-ff'>
 	<div class='swiftest-overlay-text' id='swiftest-overlay-left-container'>
 	  <div id='swiftest-overlay-left'>
 	    initialising
@@ -133,13 +135,11 @@ class Swiftest
 
     File.open(File.join(@relative_dir, @new_content_file), "w") {|f| f.write(new_content)}
 
-    # Actually drop inject.js in under the right name.
-    FileUtils.cp File.join(SWIFTEST_BASE, "inject.js"), File.join(@relative_dir, "inject.swiftest.js")
-
     # Make a new copy of the descriptor to point to a new initial page.
     @new_descriptor_file = "#@descriptor_path.swiftest#@@fileSuffix.xml"
     File.open(@new_descriptor_file, "w") do |xmlout|
       descriptor = Hpricot.XML(@descriptor_xml)
+      (descriptor/"application > id").inner_html += @@fileSuffix if @@fileSuffix
       (descriptor/"application > initialWindow > content").inner_html = @new_content_file
       (descriptor/"application > copyright").inner_html = @port.to_s
       xmlout.puts descriptor
@@ -271,7 +271,19 @@ class Swiftest
 
     reply = reply[2..-1].force_encoding('UTF-8')
 
-    raise JavascriptError, reply unless success
+    if not success
+      if reply.match(/Error: trying to call \[object DOMWindow\]\.jQuery, which is undefined/) and @jquery_retry < 5
+	@jquery_retry ||= 0
+	@jquery_retry += 1
+	sleep 1
+	return send_command command, *args
+      end
+
+      @jquery_retry = 0
+      raise JavascriptError, reply
+    end
+
+    @jquery_retry = 0
 
     begin
       js = reply
@@ -405,7 +417,6 @@ class Swiftest
   def cleanup
     File.unlink @new_descriptor_file rescue true
     File.unlink File.join(@relative_dir, @new_content_file) rescue true
-    File.unlink File.join(@relative_dir, "inject.swiftest.js") rescue true
 
     @@storedState = nil if @@storedState[:swiftest] == self
 
