@@ -15,6 +15,7 @@
  * along with Swiftest.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+var SWIFTEST_PORT = top.window.runtime.com.noblesamurai.Application.swiftestPort;
 top.Swiftest = function() {
     var HEARTBEAT_FREQUENCY = 2500,
 	HEARTBEAT_RESPONSE_WAIT = 5000;
@@ -26,11 +27,7 @@ top.Swiftest = function() {
 
     trace("initialising ...");
 
-    var insufficientDataError = new Error("Insufficient data in buffer.");
-
-    var socket = new flash.net.Socket();
-    var buffer = "", expectBuffer = "";
-
+    var socket = new flash.net.DatagramSocket();
     var state_fncall_db = [];
 
     function ruby_escape(o) {
@@ -194,47 +191,29 @@ top.Swiftest = function() {
     var redefined_builtins = false;
 
     var last_received = 0;
-    function process() {
-	expectBuffer = buffer;
+    function process(bytes) {
+	var pkt_no = bytes.readUnsignedInt();
 
-	while (true) {
-	    buffer = expectBuffer;
+	if (pkt_no == 0) {
+	    var lr = bytes.readUnsignedInt();
+	    last_received = lr;
 
-	    try {
-		var pkt_no = expect_int();
-
-		if (pkt_no == 0) {
-		    var lr = expect_int();
-		    last_received = lr;
-
-		    var no_replies = 0;
-		    for (var no in replies)
-			if (no < last_received)
-			    delete replies[no];
-			else
-			    ++no_replies;
-		    trace("heartbeat said they last received " + lr + " (replies:" + no_replies + ")");
-		    heartbeatReceived();
-		    continue;
-		}
-
-		var pkt_len = expect_int();
-		var pkt = expect_str(pkt_len);
-	    } catch (e) {
-		if (e == insufficientDataError)
-		    expectBuffer = buffer;
+	    var no_replies = 0;
+	    for (var no in replies)
+		if (no < last_received)
+		    delete replies[no];
 		else
-		    trace("error occurred while fetching packet: " + e);
+		    ++no_replies;
+	    trace("heartbeat said they last received " + lr + " (replies:" + no_replies + ")");
+	    heartbeatReceived();
+	    return;
+	}
 
-		return;
-	    }
-
-	    try {
-		processPacket(pkt_no, pkt);
-	    } catch (e) {
-		trace("error occured while processing packet " + pkt_no + " (" + pkt + "): " + e);
-		return;
-	    }
+	try {
+	    processPacket(pkt_no, bytes);
+	} catch (e) {
+	    trace("error occured while processing packet " + pkt_no + " (" + pkt + "): " + e);
+	    return;
 	}
     }
 
@@ -246,41 +225,28 @@ top.Swiftest = function() {
 
     var replies = {};
     var last_processed = 0;
-    function processPacket(no, pkt) {
+    function processPacket(no, bytes) {
 	if (replies[no] !== undefined) {
 	    send_packet(no, replies[no]);
 	    return;
 	}
 
-	function consume_int() {
-	    var i = parseInt(pkt);
-	    pkt = pkt.substr(pkt.indexOf(",") + 1);
-	    return i;
-	}
-
-	function consume_str() {
-	    var len = consume_int();
-	    var s = pkt.substr(0, len);
-	    pkt = pkt.substr(len);
-	    return s;
-	}
-
-	var command = consume_str();
-	var argc = consume_int(),
+	var command = bytes.readUTF();
+	var argc = bytes.readUnsignedInt(),
 	    args = [];
 
 	while (argc > 0) {
-	    var arg_type = consume_str();
+	    var arg_type = bytes.readUTFBytes(1);
 	    switch (arg_type) {
 	    case "s":
 		// Plain JSON arg.
-		var result = consume_str();
+		var result = bytes.readUTF();
 		result = $.parseJSON(result);
 		break;
 		
 	    case "b":
 		// Back reference.
-		var result = get_back_ref(consume_int());
+		var result = get_back_ref(bytes.readUnsignedInt());
 		break;
 
 	    default:
@@ -299,18 +265,19 @@ top.Swiftest = function() {
 	    result = "" + e + " (" + e.sourceURL + ":" + e.line + "(" + e.sourceId + "))";
 	}
 
-	var reply =
-	    serialise_bool(success) +
-	    serialise_bool(
-		top.Swiftest.alerts.length || top.Swiftest.confirms.length ||
-		top.Swiftest.prompts.length || top.Swiftest.navigates.length ||
-		top.Swiftest.browseDialogs.length) +
-	    serialise_str(ruby_escape(result));
+	var reply = new flash.utils.ByteArray();
+	reply.writeUnsignedInt(no);
+	reply.writeBoolean(success);
+	reply.writeBoolean(
+	    top.Swiftest.alerts.length || top.Swiftest.confirms.length ||
+	    top.Swiftest.prompts.length || top.Swiftest.navigates.length ||
+	    top.Swiftest.browseDialogs.length);
+	reply.writeUTFBytes(ruby_escape(result));
 
 	replies[no] = reply;
 	if (no > last_processed)
 	    last_processed = no;
-	send_packet(no, reply);
+	send_packet(reply);
     }
 
     function path_call(target, path_el) {
@@ -415,20 +382,6 @@ top.Swiftest = function() {
 	}
     };
 
-    function expect_int() {
-	if (expectBuffer.indexOf(",") == -1) throw insufficientDataError;
-	var i = parseInt(expectBuffer);
-	expectBuffer = expectBuffer.substr(expectBuffer.indexOf(",") + 1);
-	return i;
-    }
-
-    function expect_str(len) {
-	if (expectBuffer.length < len) throw insufficientDataError;
-	var s = expectBuffer.substr(0, len);
-	expectBuffer = expectBuffer.substr(len);
-	return s;
-    }
-
     function serialise_bool(b) {
 	return (!!b) ? "t" : "f";
     }
@@ -441,9 +394,8 @@ top.Swiftest = function() {
 	return "" + i + ",";
     }
 
-    function send_packet(no, pkt) {
-	socket.writeUTFBytes(serialise_int(no) + serialise_str(pkt));
-	socket.flush();
+    function send_packet(pkt) {
+	socket.send(pkt);
     }
 
     top.Swiftest.manual_pass = function() {
@@ -457,6 +409,7 @@ top.Swiftest = function() {
     $(".swiftest-overlay-manual-fail").click(top.Swiftest.manual_fail);
 
     var reconnect = false;
+    /*
     socket.addEventListener(flash.events.Event.CONNECT, function(e) {
 	trace("connected");
 	readLoopTimeout = setTimeout(readLoop, 5000);
@@ -476,7 +429,9 @@ top.Swiftest = function() {
 	}
 	reconnect = true;
     });
+    */
 
+    /*
     socket.addEventListener(flash.events.Event.CLOSE, function(e) {
 	trace("closed!");
 
@@ -487,6 +442,7 @@ top.Swiftest = function() {
 	clearTimeout(heartbeatFailTimeout);
 	heartbeatFailTimeout = null;
     });
+    */
 
     socket.addEventListener(flash.events.IOErrorEvent.IO_ERROR, function(e) {
 	trace("IO error!");
@@ -496,41 +452,25 @@ top.Swiftest = function() {
 	trace("security error!");
     });
 
-    socket.addEventListener(flash.events.ProgressEvent.SOCKET_DATA, function(e) {
-	buffer += socket.readUTFBytes(socket.bytesAvailable);
-	process();
+    socket.addEventListener(flash.events.DatagramSocketDataEvent.DATA, function(event) {
+	process(event.data);
     });
 
-    var readLoopTimeout = null;
-    function readLoop() {
-	try {
-	    var ba = socket.bytesAvailable;
-	    if (ba > 0) {
-		buffer += socket.readUTFBytes(ba);
-		process();
-	    }
-	} catch (e) {
-	    trace("error reading in readLoop!? " + e);
-	}
-	readLoopTimeout = setTimeout(readLoop, 5000);
-    }
-
     var heartbeatFailTimeout = null;
+    var heartbeatFailCount = 0;
     function heartbeatFail() {
-	trace("heartbeat failed!!");
-	trace("try a reconnect");
-	try { socket.close(); } catch (e) {}
-	socket.connect("127.0.0.1", parseInt(SWIFTEST_PORT));
+	trace("heartbeat failed!! (fail #" + (++heartbeatFailCount) + ")");
+	heartbeat();
     }
 
     var heartbeatTimeout = null;
     function heartbeat() {
-	try {
-	    socket.writeUTFBytes(serialise_int(0) + serialise_int(last_processed));
-	    socket.flush();
-	} catch (e) {
-	    trace("error writing heartbeat!? " + e);
-	}
+	var bytes = new flash.utils.ByteArray();
+	bytes.writeUnsignedInt(0);
+	bytes.writeUnsignedInt(last_processed);
+
+	socket.send(bytes);
+
 	heartbeatTimeout = null;
 	heartbeatFailTimeout = setTimeout(heartbeatFail, HEARTBEAT_RESPONSE_WAIT);
 	trace("sent heartbeat");
@@ -543,8 +483,12 @@ top.Swiftest = function() {
 	heartbeatTimeout = setTimeout(heartbeat, HEARTBEAT_FREQUENCY);
     }
 
-    trace("connecting to 127.0.0.1:" + SWIFTEST_PORT);
+    trace("trying to reach out to 127.0.0.1:" + SWIFTEST_PORT);
+    socket.bind(0, "127.0.0.1");
     socket.connect("127.0.0.1", parseInt(SWIFTEST_PORT));
+
+    heartbeat();
+    socket.receive();
 };
 
 $(top.Swiftest);

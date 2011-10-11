@@ -28,7 +28,6 @@ require File.join(SWIFTEST_BASE, 'swiftest/jsescape')
 class Swiftest
   class AlreadyStartedError < StandardError; end
   class JavascriptError < StandardError; end
-  class OtherEndDisappearedError < StandardError; end
   include SwiftestCommands
 
   SELF_LAUNCH = ENV.include?("SWIFTEST_LAUNCH") && ENV["SWIFTEST_LAUNCH"].downcase.strip == "self"
@@ -104,19 +103,8 @@ class Swiftest
   def start
     raise AlreadyStartedError if @started
 
-    begin
-      @server = TCPServer.open(0)
-    rescue SocketError
-      # Possibly OS X being rubbish.
-      while !@server
-	begin
-	  @server = TCPServer.open('0.0.0.0', 20000 + rand(10000))
-	rescue SocketError
-	  STDERR.puts "Failed to open local server again."
-	end
-      end
-    end
-    @server.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true)
+    @server = UDPSocket.new
+    @server.bind "127.0.0.1", 0
     @port = @server.addr[1]
 
     @new_content_file = "#@content_file.swiftest#@@fileSuffix.html"
@@ -128,9 +116,6 @@ class Swiftest
     # (doctored) content file.	Don't just append it, a <script/> tag outside of the normal place
     # can kill AIR!
     new_content = File.open(File.join(@relative_dir, @content_file), "r").read.gsub(/<\/\s*head\s*>/i, "
-	<script type='text/javascript'>
-	  var SWIFTEST_PORT = air.NativeApplication.nativeApplication.publisherID;
-	</script>
 	<script type='text/javascript' src='inject.swiftest.js'></script>
 	<style type='text/css'>
 	  #{File.read(File.join(SWIFTEST_BASE, "inject.css")).gsub("YBANNERB64", bannerb64).gsub("RBANNERB64", rbannerb64)}
@@ -156,11 +141,12 @@ class Swiftest
     File.open(@new_descriptor_file, "w") do |xmlout|
       descriptor = Hpricot.XML(@descriptor_xml)
       (descriptor/"application > initialWindow > content").inner_html = @new_content_file
+      (descriptor/"application > copyright").inner_html = @port.to_s
       xmlout.puts descriptor
     end
 
     # Open up the modified descriptor with ADL if the user isn't starting it themselves.
-    cmd = "adl -pubid #{@port} #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}"
+    cmd = "adl #{ENV["SWIFTEST_ADL_OPTS"]} #@new_descriptor_file #@relative_dir -- #{ENV["SWIFTEST_ARGS"]} #@project_file #{@other_args.join " "}"
     if !SELF_LAUNCH
       @pid, @stdin, @stdout, @stderr = Open4.popen4(cmd)
       @started = true
@@ -218,8 +204,10 @@ class Swiftest
 
     # Block for the client
     STDERR.puts "engage with: #{cmd}" if SELF_LAUNCH
-    @client = @server.accept
-    STDERR.flush
+
+    msg, addr = @server.recvfrom 65536
+    @server.connect addr[3], addr[1]
+    @server.send(serialise_int(0) + serialise_int(0), 0)
     @started = true
   end
 
@@ -256,11 +244,11 @@ class Swiftest
       case esc
       when String
 	# Ordinary string serialised JS. Will fit in nicely.
-	pkt += serialise_str "s"
+	pkt += "s"
 	pkt += serialise_str esc
       when Numeric
 	# Back reference!
-	pkt += serialise_str "b"
+	pkt += "b"
 	pkt += serialise_int esc
       else
 	raise "Unknown type of JS-escaped object #{esc}: #{esc.class}"
@@ -269,38 +257,16 @@ class Swiftest
 
     reply = send_packet(pkt)
 
-    consume_bool = lambda {
-      b = reply[0] == ?t
-      reply = reply[1..-1]
-      b
-    }
+    success, confirms_or_alerts =
+      reply[0].ord != 0,
+      reply[1].ord != 0
 
-    consume_int = lambda {
-      reply = reply.split ",", 2
-      i = reply.first.to_i
-      reply = reply.last
-      i
-    }
+    reply = reply[2..-1].force_encoding('UTF-8')
 
-    consume_str = lambda {
-      len = consume_int[]
-      s = reply[0...len]
-      reply = reply[len..-1]
-      s
-    }
+    raise JavascriptError, reply unless success
 
     begin
-      success = consume_bool[]
-      confirms_or_alerts = consume_bool[]
-    rescue Errno::ECONNRESET => e
-      STDERR.puts "connection reset! sending #{command.inspect}, #{args.inspect}"
-      exit 250
-    end
-
-    raise JavascriptError, consume_str[] unless success
-
-    begin
-      js = consume_str[]
+      js = reply
       r = eval(js)
     rescue SyntaxError => e
       STDERR.puts "got a syntax error while evaling #{js.inspect}"
@@ -370,14 +336,9 @@ class Swiftest
   end
 
   def send_packet_phys id, pkt
-    @client.write(serialise_int(id) + serialise_str(pkt))
-    @client.flush
-  rescue OtherEndDisappearedError => e
-    STDERR.puts "OEDE in send_packet_phys"
-    reaccept_resend rescue STDERR.puts "WTFFFFFFFFFFFFF #$!"
-  rescue Errno::ECONNRESET
-    STDERR.puts "ECONNRESET in send_packet_phys"
-    reaccept_resend rescue STDERR.puts "WTFFFFFFFFFFFFF #$!"
+    pkt = serialise_int(id) + pkt
+    STDERR.puts "pkt.length > 65535 (= #{pkt.length})" if pkt.length > 65535
+    @server.send pkt, 0
   end
 
   def wait_for_packet id
@@ -393,56 +354,37 @@ class Swiftest
   end
 
   def receive_packet
-    id = recv_int
+    pkt, addr = @server.recvfrom 65536
+
+    id = pkt.unpack('N').first
+    pkt = pkt[4..-1]
     if id == 0
-      @last_received = recv_int
+      @last_received = pkt.unpack('N').first
       @pending_packets.reject! {|no,pkt| no < @last_received}
 
-      STDERR.puts "heartbeat says they last received #@last_received, telling them we last processed #@last_processed (pp:#{@pending_packets.length})"
+      STDERR.puts "heartbeat says they last received #@last_received, "
+      STDERR.puts "telling them we last processed #@last_processed (pp:#{@pending_packets.length})"
       STDERR.flush
-      @client.write(serialise_int(0) + serialise_int(@last_processed))
-      @client.flush
+
+      @server.send(serialise_int(0) + serialise_int(@last_processed), 0)
       return
     end
 
-    len = recv_int
-    data = @client.read len
-    raise OtherEndDisappearedError if data.length != len
-    @received_packets[id] = data
-  rescue OtherEndDisappearedError => e
-    STDERR.puts "OEDE in receive_packet"
-    reaccept_resend rescue STDERR.puts "WTFFFFFFFFFFFFF #$!"
-  end
-
-  def reaccept_resend
-    @client.close rescue false
-    STDERR.puts "reaccept_resend START"
-    @client = @server.accept
-    STDERR.puts "got #{@client.inspect}"
-    @pending_packets.each do |id, pkt|
-      if id > @last_received
-	STDERR.puts "resending packet #{id} = #{pkt}"
-	send_packet_phys id, pkt
-      else
-	STDERR.puts "not resending packet #{id} (they last received #@last_received)"
-      end
-    end
-    STDERR.puts "reaccept_resend FINISH"
+    @received_packets[id] = pkt
   end
 
   def serialise_int int
-    "#{int},"
+    [int].pack('N')
   end
 
   def serialise_str str
-    serialise_int(str.length) + str
+    [str.length].pack('n') + str
   end
 
   def recv_int
     buf = ""
     while buf[-1] != ?,
       b = @client.read 1
-      raise OtherEndDisappearedError if b == nil
       buf += b
     end
     buf[0..-2].to_i
