@@ -15,14 +15,7 @@
  * along with Swiftest.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-top.yesIWASHERE = true;
-
-top.oldalert = top.alert;
-
-try {
-
 top.Swiftest = function() {
-    try {
     var SWIFTEST_PORT = top.window.runtime.com.noblesamurai.Application.swiftestPort;
 
     var HEARTBEAT_FREQUENCY = 2500,
@@ -483,12 +476,8 @@ top.Swiftest = function() {
 
     heartbeat();
     socket.receive();
-    } catch (e) { top.oldalert("1" + e); }
 };
-    } catch (e) { top.oldalert("2" + e); }
 
-try {
 $(top.Swiftest);
-    } catch (e) { top.oldalert("3" + e); }
 
 // vim: set sw=4 ts=8 noet:
