@@ -29,7 +29,6 @@ module SwiftestEnvironment
   # asserting that it's current.
   def switch_screen(screen)
     wait_for_switch = 60.0
-    STDERR.puts "0x00011 (to #{screen}//#{screen.description})"
     if not screen.current?
       begin
 	Timeout.timeout(wait_for_switch) do
