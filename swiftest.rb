@@ -303,7 +303,7 @@ class Swiftest
 	raise "Unexpected alert #{alerts[0]}" if @expected_alerts.length.zero?
 	raise "Unexpected alert #{alerts[0]}" unless @expected_alerts[0].regexp === alerts[0] or
 	                                             alerts[0].match(@expected_alerts[0].regexp)
-	alerts.shift
+	@last_alert = alerts.shift
 	@expected_alerts[0].hit!
 	@expected_alerts.shift
       end
@@ -312,7 +312,7 @@ class Swiftest
 	raise "Unexpected confirm #{confirms[0]}" if @expected_confirms.length.zero?
 	raise "Unexpected confirm #{confirms[0]}" unless @expected_confirms[0].regexp === confirms[0] or
 	                                                 confirms[0].match(@expected_confirms[0].regexp)
-	confirms.shift
+	@last_confirm = confirms.shift
 	@expected_confirms[0].hit!
 	@expected_confirms.shift
       end
@@ -321,7 +321,7 @@ class Swiftest
 	raise "Unexpected prompt #{prompts[0]}" if @expected_prompts.length.zero?
 	raise "Expected prompt #{@expected_prompts[0].regexp}, but received #{prompts[0]}" unless @expected_prompts[0].regexp === prompts[0] or
 	                                                                                          prompts[0].match(@expected_prompts[0].regexp)
-	prompts.shift
+	@last_prompt = prompts.shift
 	@expected_prompts[0].hit!
 	@expected_prompts.shift
       end
@@ -330,7 +330,7 @@ class Swiftest
 	raise "Unexpected navigateToUrl #{navigates[0]}" if @expected_navigates.length.zero?
 	raise "Expected navigateToUrl #{@expected_navigates[0].regexp}, but received #{navigates[0]}" unless @expected_navigates[0].regexp === navigates[0] or
 	                                                                                                     navigates[0].match(@expected_navigates[0].regexp)
-	navigates.shift
+	@last_navigate = navigates.shift
 	@expected_navigates[0].hit!
 	@expected_navigates.shift
       end
@@ -339,7 +339,7 @@ class Swiftest
 	raise "Unexpected browseDialog #{browseDialogs[0]}" if @expected_browseDialogs.length.zero?
 	raise "Expected browseDialog #{@expected_browseDialogs[0].regexp}, but received #{browseDialogs[0]}" unless @expected_browseDialogs[0].regexp === browseDialogs[0] or
 	                                                                                                     browseDialogs[0].match(@expected_browseDialogs[0].regexp)
-	browseDialogs.shift
+	@last_browse = browseDialogs.shift
 	@expected_browseDialogs[0].hit!
 	@expected_browseDialogs.shift
       end
@@ -528,6 +528,11 @@ class Swiftest
   end
 
   attr_reader :port
+  attr_reader :last_alert
+  attr_reader :last_confirm
+  attr_reader :last_prompt
+  attr_reader :last_navigate
+  attr_reader :last_browse
 end
 
 # vim: set sw=2 ts=8 noet:
