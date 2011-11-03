@@ -403,7 +403,7 @@ class Swiftest
   end
 
   def serialise_str str
-    [str.bytes.count].pack('n') + str
+    [str.bytes.count].pack('n') + str.force_encoding("ASCII-8BIT")
   end
 
   def recv_int
