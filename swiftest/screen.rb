@@ -389,8 +389,13 @@ class SwiftestScreen
 
       def choose(val)
 	opt = obtain.find("option:contains(#{val})")
-	self.value = opt.val
-	opt.attr('selected', 'selected')
+
+	choices = {}
+	opt.length.times {|i| choices[i] = opt.eq(i).text}
+	i = choices.sort_by {|k,v| v.length}.first.first
+
+	self.value = opt.eq(i).val
+	opt.eq(i).attr('selected', 'selected')
       end
     end
 
