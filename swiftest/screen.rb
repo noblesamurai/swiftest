@@ -365,7 +365,9 @@ class SwiftestScreen
 
       def checked?; obtain.attr('checked'); end
       def checked=(new_val)
-	obtain.attr('checked', new_val).change if checked? ^ new_val
+	if (checked?.to_s == "true") ^ (new_val.to_s == "true")
+	  obtain.attr('checked', new_val).change 
+	end
       end
     end
 
