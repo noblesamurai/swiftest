@@ -363,12 +363,12 @@ class SwiftestScreen
     class CheckBox < JQueryAccessibleField
       @klass_description = "check box"
 
-      def checked?; obtain.attr('checked'); end
-      def checked=(new_val)
-	if (checked?.to_s == "true") ^ (new_val.to_s == "true")
-	  obtain.attr('checked', new_val).change 
-	end
-      end
+			def checked?; obtain.attr('checked'); end
+			def checked=(new_val)
+				if (checked?.to_s == "true") ^ (new_val.to_s == "true")
+					obtain.attr('checked', new_val).change 
+				end
+			end
     end
 
     class RadioButton < CheckBox
@@ -386,19 +386,19 @@ class SwiftestScreen
       def value=(new_val); obtain.val(new_val).change; end
 
       def value_text
-	obtain.find("option[value=\"#{obtain.val}\"]").eq(0).text.force_encoding('utf-8')
+				obtain.find("option[value=\"#{obtain.val}\"]").eq(0).text.force_encoding('utf-8')
       end
 
       def choose(val)
-	opt = obtain.find("option:contains(#{val})")
+				opt = obtain.find("option:contains(#{val})")
 
-	choices = {}
-	opt.length.times {|i| choices[i] = opt.eq(i).text}
-	i = choices.sort_by {|k,v| v.length}.first.first
+				choices = {}
+				opt.length.times {|i| choices[i] = opt.eq(i).text}
+				i = choices.sort_by {|k,v| v.length}.first.first
 
-	self.value = opt.eq(i).val
-	opt.eq(i).attr('selected', 'selected')
-      end
+				self.value = opt.eq(i).val
+				opt.eq(i).attr('selected', 'selected')
+			end
     end
 
     class TextArea < JQueryAccessibleField
