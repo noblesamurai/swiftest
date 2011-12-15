@@ -14,9 +14,7 @@
 # along with Swiftest.  If not, see <http://www.gnu.org/licenses/>.
 
 module SwiftestTools
-  def wait_until(delay=0.5)
-    sleep delay until yield
-  end
+	def wait_until(delay=0.5)
+		sleep delay until yield
+	end
 end
-
-# vim: set sw=2 ts=8 noet:
