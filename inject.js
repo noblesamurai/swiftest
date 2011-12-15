@@ -322,18 +322,6 @@ top.Swiftest = function() {
 	}
 
 	var commands = {
-		'fncall': function(path) {
-			// Make the initial function call.
-			// This isn't actually used at the moment ...
-			var initial = path.shift();
-			var current = top[initial[0]].apply(this, initial[1]);
-
-			for (var i in path) {
-				current = path_call(current, path[i]);
-			}
-
-			return current;
-		},
 		'state-fncall': function(state, fn) {
 			// We get a variable number of arguments after state and fn -
 			// pull out of `arguments` and drop the first two.
@@ -387,7 +375,13 @@ top.Swiftest = function() {
 		'set-clipboard': function(text, format) {
 			format = format || top.air.ClipboardFormats.TEXT_FORMAT;
 			return air.Clipboard.generalClipboard.setData(format, text);
-		}
+		},
+		'manual': function(index) {
+			if (top.Swiftest.last_manual[0] == index) {
+				return top.Swiftest.last_manual[1] ? 'pass' : 'fail';
+			}
+			return null;
+		},
 	};
 
 	function serialise_bool(b) {
@@ -406,11 +400,15 @@ top.Swiftest = function() {
 		socket.send(pkt);
 	}
 
+	top.Swiftest.last_manual = [-1, true];
+
 	top.Swiftest.manual_pass = function() {
-		send_bool(true);
+		top.Swiftest.last_manual = [top.Swiftest.last_manual[0] + 1, true];
+		$("#swiftest-overlay-ff").removeClass("manual");
 	};
 	top.Swiftest.manual_fail = function() {
-		send_bool(false);
+		top.Swiftest.last_manual = [top.Swiftest.last_manual[0] + 1, false];
+		$("#swiftest-overlay-ff").removeClass("manual");
 	};
 
 	$(".swiftest-overlay-manual-pass").click(top.Swiftest.manual_pass);

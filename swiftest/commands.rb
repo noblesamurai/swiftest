@@ -166,6 +166,17 @@ module SwiftestCommands
 	alias top fncall
 
 	def manual_pass?
-		recv_bool
+		@last_manual ||= -1
+		@last_manual += 1
+
+		while true
+			r = send_command "manual", @last_manual
+			if r == 'pass'
+				return true
+			elsif r == 'fail'
+				return false
+			end
+			sleep 1
+		end
 	end
 end
