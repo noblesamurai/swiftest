@@ -92,9 +92,13 @@ top.Swiftest = function() {
 	}
 
 	if (top.ns && top.ns.modalDialog) {
-		top.ns.modalDialog = function(message, title) {
+		top.ns.modalDialog = function(message, title, options, callback) {
 			top.air.trace("Swiftest: caught modal dialog: " + message);
 			top.Swiftest.alerts.push(message);
+
+			if (callback) {
+				callback();
+			}
 		}
 	}
 
