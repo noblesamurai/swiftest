@@ -1,4 +1,4 @@
-/* 
+/**
  * Copyright 2010-2011 Noble Samurai
  * 
  * Swiftest is free software: you can redistribute it and/or modify

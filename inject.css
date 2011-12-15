@@ -1,5 +1,5 @@
 /**
- * Copyright 2010 Noble Samurai
+ * Copyright 2010-2011 Noble Samurai
  * 
  * Swiftest is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,74 +16,73 @@
  */
 
 #swiftest-overlay-ff {
-  position: absolute; display: block;
+	position: absolute; display: block;
 
-  bottom: 0px; right: 0px;
-  left: 0px; height: 20px;
+	bottom: 0px; right: 0px;
+	left: 0px; height: 20px;
 
-  z-index: 10000000;
+	z-index: 10000000;
 
-  background: url('data:image/png;base64,YBANNERB64');
+	background: url('data:image/png;base64,YBANNERB64');
 }
 #swiftest-overlay-ff.manual {
-  background: url('data:image/png;base64,RBANNERB64');
+	background: url('data:image/png;base64,RBANNERB64');
 }
 #swiftest-overlay-left-container {
-  position: absolute; display: block;
-  height: 14px;
-  left: 4px; right: 4px; bottom: 2px;
+	position: absolute; display: block;
+	height: 14px;
+	left: 4px; right: 4px; bottom: 2px;
 
-  background: none;
+	background: none;
 
-  font-size: 12px;
+	font-size: 12px;
 }
 #swiftest-overlay-left {
-  display: inline;
-  height: 14px;
-  padding: 1px 12px;
+	display: inline;
+	height: 14px;
+	padding: 1px 12px;
 
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
+	background: rgba(0, 0, 0, 0.8);
+	color: #fff;
 
 }
 #swiftest-overlay-right {
-  position: absolute; display: block;
-  width: 7em;
-  right: 4px; bottom: 2px;
+	position: absolute; display: block;
+	width: 7em;
+	right: 4px; bottom: 2px;
 
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
+	background: rgba(0, 0, 0, 0.8);
+	color: #fff;
 
-  font-size: 12px;
-  text-align: center;
+	font-size: 12px;
+	text-align: center;
 }
 a.swiftest-overlay-manual-pass, a.swiftest-overlay-manual-fail {
-  display: none;
+	display: none;
 }
 #swiftest-overlay-ff.manual a.swiftest-overlay-manual-pass,
 #swiftest-overlay-ff.manual a.swiftest-overlay-manual-fail {
-  display: inline;
-  padding: 1px 12px;
+	display: inline;
+	padding: 1px 12px;
 
-  background: rgba(255, 255, 255, 1.0);
-  color: #000;
+	background: rgba(255, 255, 255, 1.0);
+	color: #000;
 
-  font-weight: bold;
+	font-weight: bold;
 }
 #swiftest-overlay-ff.manual a.swiftest-overlay-manual-pass {
-  background: rgba(0, 255, 0, 0.8);
+	background: rgba(0, 255, 0, 0.8);
 }
 #swiftest-overlay-ff.manual a.swiftest-overlay-manual-pass:hover {
-  background: rgba(100, 255, 100, 1.0);
-  color: #000 !important;
+	background: rgba(100, 255, 100, 1.0);
+	color: #000 !important;
 }
 
 #swiftest-overlay-ff.manual a.swiftest-overlay-manual-fail {
-  background: rgba(255, 0, 0, 0.8);
+	background: rgba(255, 0, 0, 0.8);
 }
 #swiftest-overlay-ff.manual a.swiftest-overlay-manual-fail:hover {
-  background: rgba(255, 100, 100, 1.0);
-  color: #000 !important;
+	background: rgba(255, 100, 100, 1.0);
+	color: #000 !important;
 }
 
-/* vim: set sw=2 ts=8 noet: */
