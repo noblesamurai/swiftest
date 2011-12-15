@@ -18,6 +18,7 @@ require 'hpricot'
 require 'socket'
 require 'open4'
 require 'base64'
+require 'zlib'
 
 SWIFTEST_BASE = File.dirname(__FILE__)
 
@@ -210,7 +211,7 @@ class Swiftest
 
 		msg, addr = @server.recvfrom 65536
 		@server.connect addr[3], addr[1]
-		@server.send(serialise_int(0) + serialise_int(0), 0)
+		_send_compressed(serialise_int(0) + serialise_int(0))
 		@started = true
 	end
 
@@ -348,6 +349,13 @@ class Swiftest
 		r
 	end
 
+	def _send_compressed pkt
+		# Chop 2 from front, 4 from back.  (??)
+		pkt = Zlib::Deflate.deflate(pkt, 9)[2...-4]
+		STDERR.puts "pkt.length > 65535 (= #{pkt.length})" if pkt.length > 65535
+		@server.send pkt, 0
+	end
+
 	def send_packet pkt
 		@sent_packets += 1
 		id = @sent_packets
@@ -361,8 +369,7 @@ class Swiftest
 	def send_packet_phys id, pkt
 		pkt = pkt.force_encoding("ASCII-8BIT")
 		pkt = serialise_int(id) + pkt
-		STDERR.puts "pkt.length > 65535 (= #{pkt.length})" if pkt.length > 65535
-		@server.send pkt, 0
+		_send_compressed pkt
 	end
 
 	def wait_for_packet id
@@ -381,7 +388,7 @@ class Swiftest
 		if id == 0
 			@last_received = pkt.unpack('N').first
 
-			@server.send(serialise_int(0) + serialise_int(@last_processed), 0)
+			_send_compressed(serialise_int(0) + serialise_int(@last_processed))
 
 			@pending_packets.reject! {|no,pkt| no <= @last_received}
 			@pending_packets.each do |no,pkt|

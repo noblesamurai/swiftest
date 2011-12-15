@@ -194,6 +194,8 @@ top.Swiftest = function() {
 
 	var last_received = 0;
 	function process(bytes) {
+		bytes.uncompress(window.runtime.flash.utils.CompressionAlgorithm.DEFLATE);
+
 		bytes.position = 0;
 
 		var pkt_no = bytes.readUnsignedInt();
