@@ -218,7 +218,6 @@ top.Swiftest = function() {
 				}
 			}
 
-			trace("heartbeat said they last received " + lr + " (replies:" + no_replies + ")");
 			heartbeatReceived();
 			return;
 		}
@@ -447,7 +446,6 @@ top.Swiftest = function() {
 		clearTimeout(heartbeatFailTimeout);
 		heartbeatTimeout = null;
 		heartbeatFailTimeout = setTimeout(heartbeatFail, HEARTBEAT_RESPONSE_WAIT);
-		trace("sent heartbeat");
 	}
 
 	function scheduleHeartbeat() {
@@ -468,7 +466,6 @@ top.Swiftest = function() {
 	}
 
 	function heartbeatReceived() {
-		trace("got heartbeat! rescheduling");
 		heartbeatFailCount = 0;
 
 		scheduleHeartbeat();
