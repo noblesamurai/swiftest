@@ -179,6 +179,11 @@ class Swiftest
 									if ENV['SWIFTEST_LOGGING'] == 'realtime'
 										logout.puts data
 										logout.flush
+									elsif ENV['SWIFTEST_LOGGING'] == 'realtime-marked'
+										# Ensure the \n occurs within the marked block.
+										data = data[0..-2] while data[-1] == ?\n
+										logout.print "\e[0;1;2;3;4m#{data}\n\e[4;3;2;1;0m"
+										logout.flush
 									else
 										@stdlog += data
 									end
