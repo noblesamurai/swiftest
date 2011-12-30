@@ -536,6 +536,7 @@ class Swiftest
 	end
 
 	attr_reader :port
+	attr_reader :pid
 	attr_reader :last_alert
 	attr_reader :last_confirm
 	attr_reader :last_prompt
