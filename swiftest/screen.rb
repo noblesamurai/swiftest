@@ -230,11 +230,11 @@ class SwiftestScreen
 			def length; obtain.length; end
 			def found?; obtain.length > 0; end
 			def visible?
-																begin
-																				@visible_call ? @screen.instance_eval(&@visible_call) : obtain.is(":visible")
-																rescue ElementNotFoundError
-																				false
-																				end
+				begin
+					@visible_call ? @screen.instance_eval(&@visible_call) : obtain.is(":visible")
+				rescue ElementNotFoundError
+					false
+				end
 			end
 
 			def blur; obtain.blur; end
@@ -265,8 +265,8 @@ class SwiftestScreen
 			def find(*args); obtain.find(*args); end
 			def siblings(*args); obtain.siblings(*args); end
 			def absolute_position
-						off = obtain.offset
-						[off.left, off.top]
+				off = obtain.offset
+				[off.left, off.top]
 			end
 			def height; obtain.height; end
 			def width; obtain.width; end
@@ -323,9 +323,9 @@ class SwiftestScreen
 
 			def obtain
 				loc = @screen.locate(@selector,
-														 @base_call && @screen.instance_eval(&@base_call),
-														 @allow_nil,
-														 &@disambiguator)
+				                     @base_call && @screen.instance_eval(&@base_call),
+				                     @allow_nil,
+				                     &@disambiguator)
 				return loc unless @index
 
 				loc.eq(@index)
@@ -363,12 +363,12 @@ class SwiftestScreen
 		class CheckBox < JQueryAccessibleField
 			@klass_description = "check box"
 
-												def checked?; obtain.attr('checked'); end
-												def checked=(new_val)
-																if (checked?.to_s == "true") ^ (new_val.to_s == "true")
-																				obtain.attr('checked', new_val).change 
-																end
-												end
+			def checked?; obtain.attr('checked'); end
+			def checked=(new_val)
+				if (checked?.to_s == "true") ^ (new_val.to_s == "true")
+					obtain.attr('checked', new_val).change 
+				end
+			end
 		end
 
 		class RadioButton < CheckBox
@@ -386,19 +386,19 @@ class SwiftestScreen
 			def value=(new_val); obtain.val(new_val).change; end
 
 			def value_text
-																obtain.find("option[value=\"#{obtain.val}\"]").eq(0).text.force_encoding('utf-8')
+				obtain.find("option[value=\"#{obtain.val}\"]").eq(0).text.force_encoding('utf-8')
 			end
 
 			def choose(val)
-																opt = obtain.find("option:contains(#{val})")
+				opt = obtain.find("option:contains(#{val})")
 
-																choices = {}
-																opt.length.times {|i| choices[i] = opt.eq(i).text}
-																i = choices.sort_by {|k,v| v.length}.first.first
+				choices = {}
+				opt.length.times {|i| choices[i] = opt.eq(i).text}
+				i = choices.sort_by {|k,v| v.length}.first.first
 
-																self.value = opt.eq(i).val
-																opt.eq(i).attr('selected', 'selected')
-												end
+				self.value = opt.eq(i).val
+				opt.eq(i).attr('selected', 'selected')
+			end
 		end
 
 		class TextArea < JQueryAccessibleField
