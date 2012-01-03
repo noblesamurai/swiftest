@@ -441,8 +441,6 @@ class Swiftest
 		File.unlink File.join(@relative_dir, @new_content_file) rescue true
 
 		@@storedState = nil if @@storedState[:swiftest] == self
-
-		p $swiftest_calls.to_a.sort_by {|x,y| -y}
 	end
 
 	def started?
