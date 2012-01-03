@@ -90,6 +90,8 @@ class Swiftest
 		@received_packets = {}
 		@last_received = 0
 		@last_processed = 0
+
+		@lock_file = nil
 	end
 
 	def clear_expects!
@@ -103,6 +105,10 @@ class Swiftest
 	# Bootstrap the application.
 	def start
 		raise AlreadyStartedError if @started
+
+		# adl steals focus on startup. To play nicely with other tools, lock 
+		# /tmp/swiftest.lock whilst we start the application.
+		lock!
 
 		@server = UDPSocket.new
 		@server.bind "127.0.0.1", 0
@@ -218,6 +224,8 @@ class Swiftest
 		@server.connect addr[3], addr[1]
 		_send_compressed(serialise_int(0) + serialise_int(0))
 		@started = true
+		# Unlock so that other processes can start/continue
+		unlock!
 	end
 
 	def stop
@@ -533,6 +541,22 @@ class Swiftest
 
 	def soft_expect_navigate match, &b
 		expect_navigate match, true, &b
+	end
+
+	def lock!
+		raise "Already locked" if @lock_file
+		puts "Awaiting lock on /tmp/swiftest.lock"
+		@lock_file = File.open("/tmp/swiftest.lock", File::RDWR | File::CREAT, 0666)
+		@lock_file.flock File::LOCK_EX
+		puts "Lock get!"
+	end
+
+	def unlock!
+		raise "Not locked" if !@lock_file
+		@lock_file.flock File::LOCK_UN
+		@lock_file.close
+		@lock_file = nil
+		puts "Lock remove!"
 	end
 
 	attr_reader :port
