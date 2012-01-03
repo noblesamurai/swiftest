@@ -229,6 +229,7 @@ class Swiftest
 	end
 
 	def stop
+		unlock!
 		return unless @started
 
 		@started = false
@@ -434,6 +435,7 @@ class Swiftest
 	end
 
 	def cleanup
+		unlock!
 		File.unlink @new_descriptor_file rescue true
 		File.unlink File.join(@relative_dir, @new_content_file) rescue true
 
@@ -552,10 +554,11 @@ class Swiftest
 	end
 
 	def unlock!
-		raise "Not locked" if !@lock_file
-		@lock_file.flock File::LOCK_UN
-		@lock_file.close
-		@lock_file = nil
+		if @lock_file
+			@lock_file.flock File::LOCK_UN
+			@lock_file.close
+			@lock_file = nil
+		end
 		puts "Lock remove!"
 	end
 
