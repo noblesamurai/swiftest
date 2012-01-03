@@ -224,6 +224,7 @@ class Swiftest
 		@server.connect addr[3], addr[1]
 		_send_compressed(serialise_int(0) + serialise_int(0))
 		@started = true
+
 		# Unlock so that other processes can start/continue
 		unlock!
 	end
@@ -547,10 +548,10 @@ class Swiftest
 
 	def lock!
 		raise "Already locked" if @lock_file
-		puts "Awaiting lock on /tmp/swiftest.lock"
+		STDERR.puts "Awaiting lock on /tmp/swiftest.lock"
 		@lock_file = File.open("/tmp/swiftest.lock", File::RDWR | File::CREAT, 0666)
 		@lock_file.flock File::LOCK_EX
-		puts "Lock get!"
+		STDERR.puts "Lock get!"
 	end
 
 	def unlock!
@@ -559,7 +560,7 @@ class Swiftest
 			@lock_file.close
 			@lock_file = nil
 		end
-		puts "Lock remove!"
+		STDERR.puts "Lock remove!"
 	end
 
 	attr_reader :port
