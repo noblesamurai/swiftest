@@ -244,7 +244,7 @@ Toy around with it, and use more evals and blocks.
 
 ## contributors
 
- - [Anneli Cuss](http://github.com/celtic) with [Noble Samurai](http://github.com/noblesamurai)
+ - [Arlen Cuss](http://github.com/unnali) with [Noble Samurai](http://github.com/noblesamurai)
  - [Daniel Assange](http://github.com/lumifish) (link defunct) with [Noble Samurai](http://github.com/noblesamurai)
  - [Julian Thatcher](http://github.com/DaedalusRaistlin) with [Noble Samurai](http://github.com/noblesamurai)
  - [Andrew Harris](http://github.com/aeh) with [Noble Samurai](http://github.com/noblesamurai)
@@ -252,7 +252,7 @@ Toy around with it, and use more evals and blocks.
 
 ## license
 
-Copyright 2010 Noble Samurai
+Copyright 2010-2012 Noble Samurai
 
 Swiftest is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
