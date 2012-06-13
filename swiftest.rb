@@ -141,7 +141,7 @@ class Swiftest
 		File.open(@new_descriptor_file, "w") do |xmlout|
 			descriptor = Hpricot.XML(@descriptor_xml)
 			# swiftest requires DatagramSocket, which is only in AIR 2+
-			(descriptor/"application")[0]["xmlns"] = "http://ns.adobe.com/air/application/2.7" if (descriptor/"application")[0]["xmlns"] == "http://ns.adobe.com/air/application/1.5.1"
+			(descriptor/"application")[0]["xmlns"] = "http://ns.adobe.com/air/application/2.7" if (descriptor/"application")[0]["xmlns"] =~ %r{^http://ns\.adobe\.com/air/application/1\.}
 			(descriptor/"application > version")[0].name = "versionNumber" if (descriptor/"application > version").length > 0
 			(descriptor/"application > id").inner_html += @@fileSuffix if @@fileSuffix
 			(descriptor/"application > initialWindow > content").inner_html = @new_content_file
